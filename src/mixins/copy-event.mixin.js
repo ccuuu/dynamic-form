@@ -1,6 +1,11 @@
 import { cache, cloneDeep } from '../utils'
+// import Worker from 'worker-loader!./fantasy.workers.js'
 
 export default {
+  // created() {
+  //   const worker = new Worker()
+  //   console.log(worker)
+  // },
   data() {
     return {
       currentCopiedElement: null,
@@ -27,9 +32,17 @@ export default {
     },
     placeHolderEleNumber(val) {
       if (val === 0 && this.waitingMacroTask) {
-        Promise.resolve().then(() => {
-          this.refreshConstraintsDom()
-          this.waitingMacroTask = false
+        const container = this.draggableSection.childNodes[0].childNodes[0]
+        //fix issue: High is 0 when a new row is initialized
+        const _this = this
+        const observer = new MutationObserver(() => {
+          _this.waitingMacroTask = false
+          observer.disconnect()
+        })
+        observer.observe(container, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class'],
         })
       }
     },
@@ -39,7 +52,7 @@ export default {
       if (this.timer) return
       this.timer = setTimeout(() => {
         this.setAsCopyEvent(cb && cb())
-      }, 650)
+      }, 450)
     },
     setAsCopyEvent(currentDeformElement) {
       this.currentCopiedElement = this.findParentByClass(
@@ -70,7 +83,7 @@ export default {
       document.body.appendChild(packageForm)
 
       this.placeholderElement = packageForm.cloneNode()
-      packageForm.style.animation = 'copy 0.5s'
+      packageForm.style.animation = 'copy 0.4s'
       packageForm.style.animationTimingFunction = 'ease-out'
 
       this.placeholderElement.style.opacity = 0.8
@@ -159,7 +172,7 @@ export default {
         this.draggableSection.childNodes[0].childNodes[0].removeChild(
           prePlaceholderElement
         )
-      }, 316)
+      }, 304)
     },
     insertPlaceholderElement(beforeEle) {
       const { placeholderElement } = this
@@ -191,7 +204,23 @@ export default {
         const insertIndex = Array.from(container.childNodes).findIndex(
           (item) => item === this.prePlaceholderElement
         )
-        // while (this.placeHolderEleNumber > 0) continue
+
+        //fix issue that flashQueue is execute before dom remove
+        this.waitingMacroTask = true
+
+        //The principle of vue transition is to add the class name
+        //If the timing is incorrect, it will cause the page to flicker
+        const { prePlaceholderElement } = this
+        const observer = new MutationObserver(() => {
+          //clear
+          container.removeChild(prePlaceholderElement)
+          observer.disconnect()
+        })
+        observer.observe(container, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class'],
+        })
 
         this.newRowHandler(
           insertIndex - 1,
@@ -199,15 +228,9 @@ export default {
           true /*no transition*/
         )
 
-        //fix issue that flashQueue is
-        this.waitingMacroTask = true
-
-        //clear
-        container.removeChild(this.prePlaceholderElement)
         this.placeHolderEleNumber--
       }
       document.body.removeChild(this.copyElement.el)
-
       this.currentCopiedElement = null
     },
     findDraggableSectionPosition: cache(function(el) {

@@ -1,5 +1,6 @@
 <template>
-  <el-card class="box-card">
+  <!-- waitingMacroTask not a real prop, just for trigger updated hook -->
+  <el-card class="box-card" :waitingMacroTask="waitingMacroTask">
     <template #header class="clearfix">
       <span>Dynamic Form</span>
     </template>
@@ -13,7 +14,6 @@
           >
             <display-dynamic-form
               :constraints="constraints"
-              :forceUpdate="forceUpdate"
               @newColHandler="newColHandler"
               @newRowHandler="newRowHandler"
               @deleteRowHandler="deleteRowHandler"
@@ -41,13 +41,13 @@ export default {
   },
   data() {
     return {
-      forceUpdate: 1,
       timer: null,
+      updateTimer: null,
       waitingMacroTask: false,
       elementInfo: null,
       draggableSection: null,
       currentDeformElement: null,
-      constraints: null,
+      constraints: [],
     }
   },
   props: {
@@ -92,20 +92,20 @@ export default {
       }
     },
   },
-  created() {
-    this.constraints = []
-    const item = [{ columns: 24 }]
-    item.key = Math.random()
-    this.constraints.push(item)
-  },
   mounted() {
     this.draggableSection = this.$refs.draggableSection
-    this.refreshConstraintsDom()
+
+    this.initConstraints()
 
     document.body.addEventListener('mousedown', this.mousedownEvent)
     document.body.addEventListener('mouseup', this.mouseupEvent)
   },
   methods: {
+    initConstraints() {
+      const item = [{ columns: 24, forceUpdate: 1 }]
+      item.key = Math.random()
+      this.constraints.push(item)
+    },
     mousedownEvent(e) {
       e.stopPropagation()
       e.preventDefault()
@@ -156,7 +156,7 @@ export default {
       if (!target) return
       this.toggleDomClickStyle(target, false /*remove style*/)
       if (!this.currentDeformElement) return
-      this.refreshUI(this.currentDeformElement)
+      this.refreshCurrentRow(this.currentDeformElement)
       //for copyElement
       if (keepCurrentEle) return
       this.currentDeformElement = null
@@ -209,11 +209,13 @@ export default {
       const columns = row[row.length - 1].columns
       if (columns < 2) return
       row[row.length - 1].columns = Math.ceil(columns / 2)
-      row.push({ columns: Math.floor(columns / 2) })
+      //Force update current row
+      this.forceUpdateRow(row)
+      row.push({ columns: Math.floor(columns / 2), forceUpdate: 1 })
     },
     newRowHandler(index, row, noTransition = false) {
       const _this = this
-      row = row || [{ columns: 24 }]
+      row = row || [{ columns: 24, forceUpdate: 1 }]
       row.key = Math.random()
       if (noTransition) {
         Object.defineProperty(row, 'noTransition', {
@@ -228,8 +230,21 @@ export default {
             return true
           },
         })
+      } else {
+        this.waitingMacroTask = true
+        this.updateTimer && clearTimeout(this.updateTimer)
+        this.updateTimer = setTimeout(() => {
+          this.waitingMacroTask = false
+        }, 304)
       }
       this.constraints.splice(index + 1, 0, row)
+      //Force update of all items after this row
+      for (let i = index + 1, l = this.constraints.length; i < l; i++) {
+        this.forceUpdateRow(this.constraints[i])
+      }
+    },
+    forceUpdateRow(row) {
+      row.forEach((col) => col.forceUpdate++)
     },
     deformationEvent(e) {
       if (e.button !== 0) return
@@ -277,8 +292,7 @@ export default {
         siblingInfo.el.style.left = -originX + e.pageX + 'px'
       }
     },
-    refreshUI(ele) {
-      this.forceUpdate++
+    refreshCurrentRow(ele) {
       const content = this.findParentByClass(ele, 'content')
       const itemRow = content.parentNode
       const itemCol = this.findParentByClass(ele, 'el-col')
@@ -300,6 +314,7 @@ export default {
       } else {
         itemLine[--itemIndex].columns -= changeToColumns - originColumns
       }
+      this.forceUpdateRow(itemLine)
     },
     addElement(e) {
       if (!this.form.formType || !this.eventNotInSection(e)) return
@@ -317,6 +332,7 @@ export default {
           continue
         }
         const { left, right, top, bottom } = item.dom.range
+        console.log({ left, right, top, bottom }, x, y)
         if (left <= x && right >= x && top <= y && bottom >= y) {
           return item
         }
@@ -333,7 +349,10 @@ export default {
         return true
       return false
     },
+
+    //this has refresh order bug and cache bug
     refreshConstraintsDom() {
+      console.log('refreshConstraintsDom')
       let rowParent = this.findSingleChildrenByClass(
         this.draggableSection,
         'el-row'
@@ -358,7 +377,8 @@ export default {
             },
             siblingNumber,
           }
-          this.$set(item, 'dom', setDom)
+          //should not use $set, it will lead to vue update
+          item.dom = setDom
         })
       })
     },

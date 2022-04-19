@@ -1,7 +1,14 @@
 export function cache(fn) {
   const caches = new WeakMap()
-  return function(params, useCache) {
+  return function(params, useCache = true) {
     if (!useCache) return fn(params)
+    console.log(
+      'use cache: ',
+      caches.has(params),
+      params,
+      fn(params),
+      caches.get(params)
+    )
     return (caches.has(params) ? caches : caches.set(params, fn(params))).get(
       params
     )

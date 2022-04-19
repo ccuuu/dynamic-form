@@ -51,9 +51,9 @@ export default {
         //prevent checkbox focus style
 
         //find and clone current element
-        e.addEventListener('mousedown', _this.mousedownEvent, true)
+        e.addEventListener('mousedown', _this.mousedownEvent)
         //remove clone element from document
-        document.addEventListener('mouseup', _this.mouseupEvent, true)
+        document.addEventListener('mouseup', _this.mouseupEvent)
         //cover the element ui mouse hover style
         e.addEventListener('mousemove', _this.preventCursorStyle)
       },

@@ -164,7 +164,7 @@ export default {
       return _c(
         'div',
         {
-          key: _this.forceUpdate,
+          key: item.forceUpdate,
           class: [
             { 'no-left-border': index > 0 },
             'item-border',
@@ -241,10 +241,6 @@ export default {
         return []
       },
     },
-    forceUpdate: {
-      type: Number,
-      required: true,
-    },
   },
   methods: {
     isInput(e) {
@@ -292,6 +288,7 @@ export default {
 /* .list-complete-leave-active for below version 2.1.8 */ {
   opacity: 0.5;
   height: 0px;
+  z-index: -1;
 }
 .no-transition {
   transition: 0s;
