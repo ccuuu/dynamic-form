@@ -2,7 +2,7 @@
   <div>
     <el-form ref="form" :model="form" label-width="90px">
       <el-form-item label="Form label:">
-        <el-input v-model="form.label" class="input-with-select">
+        <el-input v-model="form.label" class="input-with-sele ct">
           <template v-slot:prepend>
             <div v-if="form.labelLeft">
               <i :class="form.labelLeft"></i>

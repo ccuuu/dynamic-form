@@ -32,10 +32,13 @@
 <script>
 import DisplayDynamicForm from './display-dynamic-form.vue'
 import copyEventMixin from '../mixins/copy-event.mixin'
+import selectEventMixin from '../mixins/select-event.mixin'
+
 import { cache } from '../utils'
+import { MoveCaseEnum } from '../utils/Enum'
 
 export default {
-  mixins: [copyEventMixin],
+  mixins: [copyEventMixin, selectEventMixin],
   components: {
     DisplayDynamicForm,
   },
@@ -48,6 +51,7 @@ export default {
       draggableSection: null,
       currentDeformElement: null,
       constraints: [],
+      moveCase: null,
     }
   },
   props: {
@@ -85,26 +89,100 @@ export default {
           originWidth: sibling.offsetWidth,
         }
 
-        document.body.addEventListener('mousemove', this.deformationEvent)
+        document.body.addEventListener('mousemove', this.mousemoveEvent)
       } else {
-        document.body.removeEventListener('mousemove', this.deformationEvent)
+        document.body.removeEventListener('mousemove', this.mousemoveEvent)
         this.elementInfo = null
       }
     },
   },
   mounted() {
+    this.rewriteArrayMethods(this.constraints)
+
     this.draggableSection = this.$refs.draggableSection
 
-    this.initConstraints()
+    this.newRowHandler()
 
     document.body.addEventListener('mousedown', this.mousedownEvent)
     document.body.addEventListener('mouseup', this.mouseupEvent)
   },
   methods: {
-    initConstraints() {
-      const item = [{ columns: 24, forceUpdate: 1 }]
-      item.key = Math.random()
-      this.constraints.push(item)
+    rewriteArrayMethods(arr) {
+      if (!Array.isArray(arr)) return
+      const origin = arr.__proto__
+
+      function define(arr, key, methods) {
+        Object.defineProperty(arr, key, {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: methods,
+        })
+        return methods
+      }
+
+      const constraintsProto = Object.create(origin),
+        constraintsItemProto = Object.create(origin)
+
+      ;['push', 'unshift', 'splice'].forEach((method) => {
+        function formatParams(args, formatFn = (i) => i) {
+          const basic = method === 'splice' ? args.slice(0, 2) : []
+          args = method === 'splice' ? args.slice(2) : args
+          args = formatFn(args)
+          return {
+            formatArgs: args.length === 1 ? args[0] : args,
+            basic,
+          }
+        }
+
+        const genForceUpdate = define(constraintsItemProto, method, function genForceUpdate(
+          ...args
+        ) {
+          if (!args.length) return
+          const { formatArgs, basic } = formatParams(args)
+          ;(Array.isArray(formatArgs) ? formatArgs : [formatArgs]).forEach(
+            (col) => (col.forceUpdate = col.forceUpdate || 1)
+          )
+          return origin[method].call(this, ...basic, formatArgs)
+        })
+
+        define(constraintsProto, method, function constrainsArrayMethod(
+          ...args
+        ) {
+          const _this = this
+          if (!args.length) return
+
+          const { basic, formatArgs } = formatParams(args, function(args) {
+            return args.map((i) => (!Array.isArray(i) ? [i] : i))
+          })
+
+          if (!formatArgs.length) return origin[method].call(this, ...basic)
+
+          if (!formatArgs.hasOwnProperty('key')) {
+            //single params
+            if (!Array.isArray(formatArgs[0])) {
+              formatArgs.key = Math.random() + ''
+            } else {
+              return (method === 'splice'
+                ? formatArgs.reverse()
+                : formatArgs
+              ).every((i) => {
+                i.key = Math.random() + ''
+                return defineAndCallMethod(i)
+              })
+            }
+          }
+          function defineAndCallMethod(arrItem) {
+            arrItem.__proto__ = constraintsItemProto
+            return genForceUpdate.call(_this, ...basic, arrItem)
+          }
+          return defineAndCallMethod(formatArgs)
+        })
+      })
+      arr.__proto__ = constraintsProto
+    },
+    genColItem(columns = 24) {
+      return { columns }
     },
     mousedownEvent(e) {
       e.stopPropagation()
@@ -141,10 +219,13 @@ export default {
     },
     mouseupEvent(e, keepCurrentEle) {
       if (e.button !== 0) return
+      this.moveCase = null
       this.clearTimer()
       if (this.currentCopiedElement) {
         this.finishCopy(e)
         return
+      } else if (Number.isSafeInteger(this.beginRowIndex)) {
+        this.finishSelect()
       } else {
         this.finishDeformation(e, keepCurrentEle)
       }
@@ -209,13 +290,12 @@ export default {
       const columns = row[row.length - 1].columns
       if (columns < 2) return
       row[row.length - 1].columns = Math.ceil(columns / 2)
+      row.push(this.genColItem(Math.floor(columns / 2)))
       //Force update current row
       this.forceUpdateRow(row)
-      row.push({ columns: Math.floor(columns / 2), forceUpdate: 1 })
     },
-    newRowHandler(index, row, noTransition = false) {
+    newRowHandler(index = 0, row = this.genColItem(), noTransition = false) {
       const _this = this
-      row = row || [{ columns: 24, forceUpdate: 1 }]
       row.key = Math.random()
       if (noTransition) {
         Object.defineProperty(row, 'noTransition', {
@@ -246,11 +326,12 @@ export default {
     forceUpdateRow(row) {
       row.forEach((col) => col.forceUpdate++)
     },
-    deformationEvent(e) {
+    mousemoveEvent(e) {
       if (e.button !== 0) return
+      if (!this.moveCase) this.moveCase = MoveCaseEnum.Default
 
       //if mouse move, clear the copyEvent timer
-      if (this.timer && e.movementX) this.clearTimer()
+      if (this.timer && (e.movementX || e.movementY)) this.clearTimer()
       this.isCopyEvent(
         function() {
           this.mouseupEvent(
@@ -261,6 +342,18 @@ export default {
       )
 
       e.preventDefault()
+      if (e.movementY > 5) {
+        this.moveCase = MoveCaseEnum.SelectEvent
+        this.clearTimer()
+        this.finishDeformation(e)
+      }
+      if (this.moveCase === MoveCaseEnum.DeformationEvent) {
+        this.deformationEvent(e)
+      } else {
+        this.isSelectEvent(this.elementInfo)
+      }
+    },
+    deformationEvent(e) {
       const { currentDeformElement } = this
       if (!currentDeformElement) return
       const {
@@ -309,15 +402,17 @@ export default {
       const itemLine = this.constraints[rowIndex]
       const originColumns = itemLine[itemIndex].columns
       itemLine[itemIndex].columns = changeToColumns
-      if (!this.elementInfo.changeInLeftSideEle) {
-        itemLine[++itemIndex].columns -= changeToColumns - originColumns
-      } else {
-        itemLine[--itemIndex].columns -= changeToColumns - originColumns
-      }
+      itemLine[
+        !this.elementInfo.changeInLeftSideEle ? ++itemIndex : --itemIndex
+      ].columns -= changeToColumns - originColumns
       this.forceUpdateRow(itemLine)
+      //trigger current component update hook
+      this.constraints.push({})
+      this.constraints.pop()
     },
     addElement(e) {
       if (!this.form.formType || !this.eventNotInSection(e)) return
+      console.log(this.constraints[0][0].dom.range)
       const position = this.findElementContainer(e.pageX, e.pageY)
       for (const [key, item] of Object.entries(this.form)) {
         this.$set(position, key, item)
@@ -332,7 +427,6 @@ export default {
           continue
         }
         const { left, right, top, bottom } = item.dom.range
-        console.log({ left, right, top, bottom }, x, y)
         if (left <= x && right >= x && top <= y && bottom >= y) {
           return item
         }
@@ -352,7 +446,6 @@ export default {
 
     //this has refresh order bug and cache bug
     refreshConstraintsDom() {
-      console.log('refreshConstraintsDom')
       let rowParent = this.findSingleChildrenByClass(
         this.draggableSection,
         'el-row'

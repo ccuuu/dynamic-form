@@ -231,7 +231,7 @@ export default {
   },
   data() {
     return {
-      virtualModel: 's',
+      virtualModel: '',
     }
   },
   props: {

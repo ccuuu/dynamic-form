@@ -1,11 +1,7 @@
 import { cache, cloneDeep } from '../utils'
-// import Worker from 'worker-loader!./fantasy.workers.js'
+import { MoveCaseEnum } from '../utils/Enum'
 
 export default {
-  // created() {
-  //   const worker = new Worker()
-  //   console.log(worker)
-  // },
   data() {
     return {
       currentCopiedElement: null,
@@ -47,6 +43,9 @@ export default {
       }
     },
   },
+  created() {
+    this.drawActionAnimation()
+  },
   methods: {
     isCopyEvent(cb) {
       if (this.timer) return
@@ -55,6 +54,7 @@ export default {
       }, 450)
     },
     setAsCopyEvent(currentDeformElement) {
+      this.moveCase = MoveCaseEnum.CopyEvent
       this.currentCopiedElement = this.findParentByClass(
         currentDeformElement || this.currentDeformElement,
         'el-row'
@@ -94,6 +94,12 @@ export default {
       packageForm.style.left = left + 'px'
       packageForm.style.top = top + 'px'
       packageForm.style.zIndex = '1000'
+      this.drawActionAnimation(
+        currentCopiedElement.offsetWidth,
+        currentCopiedElement.offsetHeight,
+        left,
+        top
+      )
 
       this.copyElement = {
         el: packageForm,
@@ -107,6 +113,39 @@ export default {
           },
         },
       }
+    },
+    drawActionAnimation(width, height, left, top) {
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.style.position = 'absolute'
+      canvas.style.left = left + 'px'
+      canvas.style.top = top - 1 + 'px'
+      canvas.style.zIndex = '1001'
+      document.body.appendChild(canvas)
+      const context = canvas.getContext('2d')
+      const gradient = context.createLinearGradient(0, 0, 30, 90)
+      gradient.addColorStop(0, 'white')
+      gradient.addColorStop(0.5, 'rgb(235, 238, 245)')
+      gradient.addColorStop(1, '#ebeef5')
+      context.fillStyle = gradient
+      context.rotate(Math.PI / 10)
+      context.translate(0, -10)
+      context.globalAlpha = 0.6
+
+      const dateNow = Date.now()
+      function animation() {
+        if (Date.now() - dateNow >= 304) {
+          document.body.removeChild(canvas)
+          return
+        }
+        context.clearRect(-1, -1, 500, 500)
+        context.fillStyle = gradient
+        context.translate(width / 18, -width / 54)
+        context.fillRect(0, 0, 30, 200)
+        requestAnimationFrame(animation)
+      }
+      requestAnimationFrame(animation)
     },
     copyEvent(e) {
       const { el: copyEle, information } = this.copyElement
@@ -123,9 +162,9 @@ export default {
           false /*no use cache*/
         ).top +
         itemHeight / 2
-
       const copyToIndex = Math.floor(baseLineTop / itemHeight) - 1
-      if (this.cacheCopyToIndex === copyToIndex) return
+      //todo: repeated generate placeholderElement
+      if (copyToIndex === this.cacheCopyToIndex) return
       this.cacheCopyToIndex = copyToIndex
       const beforeEle = this.draggableSection.childNodes[0].childNodes[0].childNodes.item(
         copyToIndex + this.NumberOfPlaceHolderElementBefore(copyToIndex)
