@@ -127,7 +127,7 @@ export default {
       const gradient = context.createLinearGradient(0, 0, 30, 90)
       gradient.addColorStop(0, 'white')
       gradient.addColorStop(0.5, 'rgb(235, 238, 245)')
-      gradient.addColorStop(1, '#ebeef5')
+      gradient.addColorStop(1, '#EBEEF5')
       context.fillStyle = gradient
       context.rotate(Math.PI / 10)
       context.translate(0, -10)

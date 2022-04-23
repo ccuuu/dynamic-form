@@ -188,6 +188,9 @@ export default {
       e.stopPropagation()
       e.preventDefault()
       if (e.button !== 0) return
+
+      if (this.selectElement.length) this.resetSelectElement()
+
       let target = e.target
       target = this.findParentByClass(target, 'context-box')
       if (!target) return
@@ -280,7 +283,7 @@ export default {
         return
       }
       dom.style.zIndex = '1000'
-      dom.style.backgroundColor = '#ebeef5'
+      dom.style.backgroundColor = '#EBEEF5'
     },
     deleteRowHandler(index) {
       this.constraints.splice(index, 1)
@@ -342,7 +345,7 @@ export default {
       )
 
       e.preventDefault()
-      if (e.movementY > 5) {
+      if (Math.abs(e.movementY) > 4) {
         this.moveCase = MoveCaseEnum.SelectEvent
         this.clearTimer()
         this.finishDeformation(e)
