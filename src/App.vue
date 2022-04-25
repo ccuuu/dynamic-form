@@ -1,6 +1,6 @@
 <script>
-import display from './components/display.vue'
-import control from './components/control.vue'
+import display from './pages/display.vue'
+import control from './pages/control.vue'
 
 export default {
   name: 'App',
@@ -42,6 +42,7 @@ export default {
         labelRight: null,
         formType: null,
       },
+      a: {},
     }
   },
   methods: {

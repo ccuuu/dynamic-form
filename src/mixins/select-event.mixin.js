@@ -1,9 +1,10 @@
 import { cache, cloneDeep } from '../utils'
-import { MoveCaseEnum } from '../utils/Enum'
+import { MenuEnum } from '../utils/Enum'
 
 export default {
   data() {
     return {
+      startEngine: false,
       beginRowIndex: Number.POSITIVE_INFINITY,
       endRowIndex: Number.POSITIVE_INFINITY,
       height: 0,
@@ -15,8 +16,8 @@ export default {
     }
   },
   watch: {
-    beginRowIndex(val) {
-      if (Number.isSafeInteger(val)) {
+    startEngine(val) {
+      if (val) {
         document.body.addEventListener('mousemove', this.selectEvent)
       } else {
         document.body.removeEventListener('mousemove', this.selectEvent)
@@ -47,7 +48,6 @@ export default {
   },
   created() {
     this.rewriteCanvasGC()
-    document.body.addEventListener('contextmenu', this.contextmenuEvent)
   },
   methods: {
     rewriteCanvasGC() {
@@ -63,7 +63,15 @@ export default {
       }
       this.canvasGC.__proto__ = proto
     },
-    isSelectEvent(startElement) {
+    resolveSelectInDownEvent() {
+      if (this.selectElement.length) this.resetSelectElement()
+    },
+    initSelectEvent(startElement) {
+      this.startEngine = true
+      this.draggableSection.addEventListener(
+        'contextmenu',
+        this.contextmenuEventInSelect
+      )
       this.top = this.findPagePosition(
         document.querySelector('.context-box')
       ).top
@@ -77,16 +85,26 @@ export default {
       this.endRowIndex = this.findRowIndex(e.pageY)
     },
     finishSelect() {
-      this.beginRowIndex = Number.POSITIVE_INFINITY
+      this.startEngine = false
     },
-    contextmenuEvent(e) {
+    contextmenuEventInSelect(e) {
       if (this.selectElement.length) {
         e.preventDefault()
+        this.contextMenuActivation({
+          event: e,
+          options: [MenuEnum.CopyAll, MenuEnum.DeleteAll],
+          range: [this.beginRowIndex, this.endRowIndex],
+        })
       }
     },
     resetSelectElement() {
       this.selectElement = []
     },
+    // resetCopyEvent() {
+    //   this.selectElement = []
+    //   this.beginRowIndex = Number.POSITIVE_INFINITY
+    //   this.endRowIndex = Number.POSITIVE_INFINITY
+    // },
     findSelectElement() {
       this.resetSelectElement()
       Array.from(document.getElementsByClassName('content')).forEach(
@@ -164,5 +182,11 @@ export default {
       }
       requestAnimationFrame(animation)
     },
+  },
+  beforeDestroy() {
+    this.draggableSection.removeEventListener(
+      'contextMenu',
+      this.contextmenuEventInSelect
+    )
   },
 }

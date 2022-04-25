@@ -4,6 +4,7 @@ import { MoveCaseEnum } from '../utils/Enum'
 export default {
   data() {
     return {
+      copyEventTimer: null,
       currentCopiedElement: null,
       copyElement: null,
       placeholderElement: null,
@@ -47,9 +48,34 @@ export default {
     this.drawActionAnimation()
   },
   methods: {
+    resolveCopyInDownEvent(target, e) {
+      this.isCopyEvent(
+        function() {
+          this.toggleDomClickStyle(target, false /*remove style*/)
+          this.mouseupEvent(
+            e,
+            true /*keep current element until delete manually */
+          )
+          return target
+        }.bind(this)
+      )
+    },
+    resolveCopyInMoveEvent(e) {
+      //if mouse move, clear the copyEvent timer
+      if (this.copyEventTimer && (e.movementX || e.movementY))
+        this.clearCopyTimer()
+      this.isCopyEvent(
+        function() {
+          this.mouseupEvent(
+            e,
+            true /*keep current element until delete manually */
+          )
+        }.bind(this)
+      )
+    },
     isCopyEvent(cb) {
-      if (this.timer) return
-      this.timer = setTimeout(() => {
+      if (this.copyEventTimer) return
+      this.copyEventTimer = setTimeout(() => {
         this.setAsCopyEvent(cb && cb())
       }, 450)
     },
@@ -60,7 +86,11 @@ export default {
         'el-row'
       )
       this.currentDeformElement = null
-      this.timer = null
+      this.clearCopyTimer()
+    },
+    clearCopyTimer() {
+      clearTimeout(this.copyEventTimer)
+      this.copyEventTimer = null
     },
     copyAndInsertElement() {
       const { currentCopiedElement } = this
