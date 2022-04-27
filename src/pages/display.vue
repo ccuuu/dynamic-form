@@ -1,8 +1,8 @@
 <template>
   <!-- waitingMacroTask not a real prop, just for trigger updated hook -->
-  <el-card class="box-card">
+  <el-card class="box-card" :waitingMacroTask="waitingMacroTask">
     <template #header class="clearfix">
-      <span>Dynamic Form{{ waitingMacroTask }}</span>
+      <span>Dynamic Form</span>
     </template>
     <el-form ref="form" :model="form" label-position="top">
       <el-row type="flex">
@@ -13,12 +13,10 @@
             style="position: relative"
           >
             <display-dynamic-form
-              :waitingMacroTask="waitingMacroTask"
               :constraints="constraints"
               @newColHandler="newColHandler"
               @newRowHandler="newRowHandler"
               @deleteRowHandler="deleteRowHandler"
-              @macroTaskFinish="waitingMacroTask = false"
             ></display-dynamic-form>
           </div>
         </el-col>
@@ -38,7 +36,7 @@ import selectEventMixin from '../mixins/select-event.mixin'
 import deformationEventMixin from '../mixins/deformation-event.mixin'
 import contextmenuMixin from '../mixins/contextmenu.mixin'
 
-import { cache } from '../utils'
+import { cache, cloneDeep } from '../utils'
 import { MoveCaseEnum } from '../utils/Enum'
 
 export default {
@@ -50,11 +48,6 @@ export default {
   ],
   components: {
     DisplayDynamicForm,
-  },
-  watch: {
-    waitingMacroTask(v) {
-      console.log(v, 'waitingMacroTask')
-    },
   },
   data() {
     return {
@@ -82,6 +75,7 @@ export default {
 
     document.body.addEventListener('mousedown', this.mousedownEvent)
     document.body.addEventListener('mouseup', this.mouseupEvent)
+    document.body.addEventListener('contextmenu', this.contextmenuEvent)
   },
   methods: {
     rewriteArrayMethods(arr) {
@@ -120,7 +114,9 @@ export default {
           ;(Array.isArray(formatArgs) ? formatArgs : [formatArgs]).forEach(
             (col) => (col.forceUpdate = col.forceUpdate || 1)
           )
-          return origin[method].call(this, ...basic, formatArgs)
+          const res = origin[method].call(this, ...basic, formatArgs)
+          console.log(this, basic)
+          return res
         })
 
         define(constraintsProto, method, function constrainsArrayMethod(
@@ -164,9 +160,19 @@ export default {
     mousedownEvent(e) {
       e.stopPropagation()
       e.preventDefault()
+      //不在区域内，点击任意键都清除select
+      if (
+        !Array.from(e.path).some(
+          (ele) => ele instanceof HTMLElement && ele.tagName === 'CANVAS'
+        )
+      )
+        this.resolveSelectInDownEvent()
       if (e.button !== 0) return
-
+      //点击左键，无论鼠标位置，固定清除select
       this.resolveSelectInDownEvent()
+
+      //清除上一次操作所选中的项
+      document.addEventListener('mousemove', this.mousemoveEvent)
 
       let target = this.findParentByClass(e.target, 'context-box')
       if (!target) return
@@ -177,23 +183,70 @@ export default {
 
       this.resolveDeformInDownEvent(target, e)
     },
-    mouseupEvent(e, keepCurrentEle) {
+    mousemoveEvent(e) {
       if (e.button !== 0) return
-      this.moveCase = null
-      this.clearCopyTimer()
-      if (this.currentCopiedElement) {
-        this.finishCopy(e)
-        return
-      } else if (this.selectElement.length) {
-        this.finishSelect()
-      } else {
-        this.finishDeformation(e, keepCurrentEle)
+      e.preventDefault()
+      this.resolveEvent(e)
+
+      //event
+      if (this.moveCase === MoveCaseEnum.DeformationEvent) {
+        //在deformation行进中的copy事件
+        this.resolveCopyInMoveEvent(e)
+        this.deformationEvent(e)
+      } else if (this.moveCase === MoveCaseEnum.CopyEvent) {
+        this.copyEvent(e)
+      } else if (this.moveCase === MoveCaseEnum.SelectEvent) {
+        this.selectEvent(e)
       }
     },
+    mouseupEvent(e) {
+      if (e.button !== 0) return
+      this.moveCase = null
+      document.removeEventListener('mousemove', this.mousemoveEvent)
 
-    clearMacroTaskTimer() {
-      clearTimeout(this.waitingMacroTaskTimer)
-      this.waitingMacroTaskTimer = null
+      this.finishEvent(e)
+    },
+    resolveEvent(e) {
+      if (
+        !this.moveCase &&
+        this.currentDeformElement &&
+        !this.currentDeformElement.isSingle
+      )
+        this.moveCase = MoveCaseEnum.DeformationEvent
+
+      if (
+        (!this.moveCase || this.moveCase === MoveCaseEnum.DeformationEvent) &&
+        this.currentCopiedElement
+      )
+        this.moveCase = MoveCaseEnum.CopyEvent
+
+      if (
+        Math.abs(e.movementY) > 5 &&
+        (!this.moveCase || this.moveCase === MoveCaseEnum.DeformationEvent)
+      ) {
+        this.moveCase = MoveCaseEnum.SelectEvent
+        this.initSelectEvent(this.elementInfo)
+
+        this.clearCopyTimer()
+        this.finishEvent(e)
+      }
+    },
+    finishEvent(e, keepCurrentEle) {
+      this.clearCopyTimer()
+
+      //基于事件的依赖元素结束事件，而非moveCase。因为在某些时候需要在一种moveCase
+      //的时候手动finish另一项事件
+      if (this.currentCopiedElement) {
+        return this.finishCopy(e)
+      }
+
+      if (this.selectElement.length) {
+        return this.finishSelect()
+      }
+
+      if (this.currentDeformElement) {
+        this.finishDeformation(e, keepCurrentEle)
+      }
     },
 
     findParentByClass(target, className) {
@@ -209,7 +262,8 @@ export default {
         return
       }
       dom.style.zIndex = '1000'
-      dom.style.backgroundColor = '#EBEEF5'
+      dom.style.backgroundColor = '#daf0ff'
+      dom.style.transition = 'background 0.25s'
     },
     deleteRowHandler(begin, end = begin) {
       this.constraints.splice(begin, end - begin + 1)
@@ -218,64 +272,106 @@ export default {
     newColHandler(index = 0) {
       const row = this.constraints[index]
       const columns = row[row.length - 1].columns
+
+      const total = row.reduce((res, item) => res + item.columns, 0)
+      if (total < 24) {
+        return row.push(this.genColItem(24 - total))
+      }
+
       if (columns < 2) return
       row[row.length - 1].columns = Math.ceil(columns / 2)
       row.push(this.genColItem(Math.floor(columns / 2)))
       //Force update current row
       this.forceUpdateRow(row)
     },
-    newRowHandler(index = 0, row = this.genColItem(), noTransition = false) {
-      const _this = this
+    formatNewRowArgs(args) {
+      let index = args[0] || 0,
+        noTransition = !Number.isSafeInteger(args[args.length - 1])
+          ? args[args.length - 1]
+          : false,
+        startIndex = Number.isSafeInteger(args[1]) ? args[1] : null,
+        endIndex = Number.isSafeInteger(args[2]) ? args[2] : startIndex
+      return { index, startIndex, endIndex, noTransition }
+    },
+    newRowHandler(...args) {
+      const {
+        index,
+        startIndex,
+        endIndex,
+        noTransition,
+      } = this.formatNewRowArgs(args)
+
+      let rows = []
+      if (!Number.isSafeInteger(startIndex)) {
+        rows = [this.genColItem()]
+      } else {
+        for (let i = startIndex; i <= endIndex; i++) {
+          rows.push(cloneDeep(this.constraints[i]))
+        }
+      }
+
       if (noTransition) {
+        this.defineNoTransitionRows(rows)
+      } else {
+        this.waitingMacroTaskHook()
+      }
+      this.constraints.splice(index + 1, 0, rows)
+      //Force update of all items after this row
+      for (let i = index + 1, l = this.constraints.length; i < l; i++) {
+        this.forceUpdateRow(this.constraints[i])
+      }
+      return rows
+    },
+    defineNoTransitionRows(rows) {
+      const _this = this
+      rows.forEach((row) => {
         Object.defineProperty(row, 'noTransition', {
           configurable: true,
           enumerable: false,
           get() {
             //Micro task cannot be used here,because it will cause repeated renders in a task queue
             //Implicit removal of this property must wait until the dom update is complete
-            setTimeout(() => {
-              _this.$delete(this, 'noTransition')
-            }, 100)
+
+            //看起来似乎新增的DOM会在下一帧再执行css中的过度，而不是创建之初就应用。
+            //因为删除时机只有在requestAnimationFrame中能够使dom挂载上动画效果，
+            //而任何立即执行的微任务或宏任务都无法实现
+
+            //如果仅在dom创建的时机就删除noTransition，会导致执行的动画效果仍然应
+            //用vue的过渡动画
+            const observer = new MutationObserver(() => {
+              requestAnimationFrame(() => _this.$delete(this, 'noTransition'))
+              observer.disconnect()
+            })
+            observer.observe(_this.draggableSection, {
+              subtree: true,
+              attributes: true,
+              attributeOldValue: true,
+              attributeFilter: ['class'],
+            })
             return true
           },
         })
-      } else {
-        this.waitingMacroTaskHook()
-      }
-      this.constraints.splice(index + 1, 0, row)
-      //Force update of all items after this row
-      for (let i = index + 1, l = this.constraints.length; i < l; i++) {
-        this.forceUpdateRow(this.constraints[i])
-      }
+      })
     },
     waitingMacroTaskHook() {
       this.waitingMacroTask = true
-      // this.waitingMacroTaskTimer && this.clearMacroTaskTimer()
-      // //Refresh the information after waiting for the animation to complete
-      // this.waitingMacroTaskTimer = setTimeout(() => {
-      //   this.waitingMacroTask = false
-      // }, 400)
+      if (this.waitingMacroTaskTimer) {
+        clearTimeout(this.waitingMacroTaskTimer)
+      }
+      //Refresh the information after waiting for the animation to complete
+
+      //chrome的timeout精准度为4ms，DOM完成动画的时间为300ms,但是看起来似乎当
+      //多个动画项叠加在一起的时候会存在时延(或许是vue animation所导致的)，从而
+      //导致304并不能获取到最终正确的dom的元素信息
+      //此时，并不确定所操作项的数量，因此，妥协措施是使用一个较大的timeout
+      //但是这种方案实在太蠢了，需要优化...
+
+      this.waitingMacroTaskTimer = setTimeout(() => {
+        requestAnimationFrame(() => (this.waitingMacroTask = false))
+      }, 354)
     },
     forceUpdateRow(row) {
       row.forEach((col) => col.forceUpdate++)
-    },
-    mousemoveEvent(e) {
-      if (e.button !== 0) return
-      if (!this.moveCase) this.moveCase = MoveCaseEnum.Default
-
-      this.resolveCopyInMoveEvent(e)
-
-      e.preventDefault()
-      if (Math.abs(e.movementY) > 5) {
-        this.moveCase = MoveCaseEnum.SelectEvent
-        this.clearCopyTimer()
-        this.finishDeformation(e)
-      }
-      if (this.moveCase === MoveCaseEnum.DeformationEvent) {
-        this.deformationEvent(e)
-      } else {
-        this.initSelectEvent(this.elementInfo)
-      }
     },
 
     refreshCurrentRow(ele) {
@@ -393,6 +489,10 @@ export default {
     //when add or delete the row, refreshConstraintsDom should be called after the animation finish
     !this.waitingMacroTask && this.refreshConstraintsDom()
   },
+  beforeDestroy() {
+    document.body.removeEventListener('mousedown', this.mousedownEvent)
+    document.body.removeEventListener('mouseup', this.mouseupEvent)
+  },
 }
 </script>
 <style>
@@ -403,10 +503,17 @@ export default {
   50% {
     transform: scale(1.015, 1.1);
     opacity: 1;
-    background-color: #dadee9;
+    background-color: #d8efff;
   }
   100% {
     transform: scale(1, 1);
   }
+}
+.box-card {
+  -webkit-backdrop-filter: blur(14px);
+  background-color: transparent !important;
+  backdrop-filter: blur(14px);
+  border-radius: 12px;
+  box-shadow: 0 10px 20px 10px rgb(0 0 0 / 10%);
 }
 </style>

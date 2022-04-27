@@ -20,20 +20,22 @@ export default {
             props: {
               name: 'list-complete',
             },
-            on: {
-              afterLeave() {
-                //当动画完成时，dom并未完成删除，因此不能立即调用刷新回调
-                //需要在下一帧动画（或宏任务队列）等待执行
-                requestAnimationFrame(() => {
-                  _this.$emit('macroTaskFinish')
-                })
-              },
-              afterEnter() {
-                requestAnimationFrame(() => {
-                  _this.$emit('macroTaskFinish')
-                })
-              },
-            },
+            //使用animation hook会导致刷新时机混乱的问题
+            // on: {
+            //   afterLeave() {
+            //     //当动画完成时，dom并未完成删除，因此不能立即调用刷新回调
+            //     //需要在下一帧动画（或宏任务队列）等待执行
+            //     requestAnimationFrame(() => {
+            //       _this.$emit('macroTaskFinish')
+            //     })
+            //   },
+            //   afterEnter() {
+            //     console.log('afterEnter')
+            //     requestAnimationFrame(() => {
+            //       _this.$emit('macroTaskFinish')
+            //     })
+            //   },
+            // },
           },
           [
             ...constraints.map((row, i) => {
@@ -48,7 +50,6 @@ export default {
                       'no-transition': row.noTransition,
                     },
                   ],
-
                   key: row.key,
                 },
                 [
@@ -76,8 +77,11 @@ export default {
                               {
                                 style: {
                                   height: '100%',
-                                  'border-top': '1px solid #EBEEF5',
-                                  'border-bottom': '1px solid #EBEEF5',
+                                  'border-top': '1px solid #d1e4ff',
+                                  'border-bottom':
+                                    i === constraints.length - 1
+                                      ? '1px solid #d1e4ff'
+                                      : '',
                                 },
                                 props: { span: item.columns },
                                 key: item.dataKey || index,
@@ -102,7 +106,7 @@ export default {
                       },
                       props: { span: 1 },
                       nativeOn: {
-                        mouseup: _this.stopPropagation,
+                        // mouseup: _this.stopPropagation,
                       },
                     },
                     createActionSection(i)
@@ -264,10 +268,6 @@ export default {
         return []
       },
     },
-    waitingMacroTask: {
-      type: Boolean,
-      require: true,
-    },
   },
   methods: {
     isInput(e) {
@@ -302,8 +302,8 @@ export default {
   height: 90px;
 }
 .item-border {
-  border-left: 1px solid #ebeef5;
-  border-right: 1px solid #ebeef5;
+  border-left: 1px solid #d1e4ff;
+  border-right: 1px solid #d1e4ff;
 }
 .no-left-border {
   border-left: none;

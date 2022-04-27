@@ -18,9 +18,9 @@ export default {
       if (val) {
         //copy from currentCopiedElement to copyElement
         this.copyAndInsertElement()
-        document.body.addEventListener('mousemove', this.copyEvent)
+        // document.body.addEventListener('mousemove', this.copyEvent)
       } else {
-        document.body.removeEventListener('mousemove', this.copyEvent)
+        // document.body.removeEventListener('mousemove', this.copyEvent)
         this.copyElement = null
         this.placeholderElement = null
 
@@ -51,8 +51,8 @@ export default {
     resolveCopyInDownEvent(target, e) {
       this.isCopyEvent(
         function() {
-          this.toggleDomClickStyle(target, false /*remove style*/)
-          this.mouseupEvent(
+          // this.toggleDomClickStyle(target, false /*remove style*/)
+          this.finishEvent(
             e,
             true /*keep current element until delete manually */
           )
@@ -66,7 +66,7 @@ export default {
         this.clearCopyTimer()
       this.isCopyEvent(
         function() {
-          this.mouseupEvent(
+          this.finishEvent(
             e,
             true /*keep current element until delete manually */
           )
@@ -80,7 +80,6 @@ export default {
       }, 450)
     },
     setAsCopyEvent(currentDeformElement) {
-      this.moveCase = MoveCaseEnum.CopyEvent
       this.currentCopiedElement = this.findParentByClass(
         currentDeformElement || this.currentDeformElement,
         'el-row'
@@ -105,8 +104,8 @@ export default {
       packageForm.appendChild(copy)
 
       packageForm.style.borderRadius = '10px'
-      packageForm.style.backgroundColor = 'rgb(235, 238, 245)'
-      packageForm.style.opacity = 0.7
+      packageForm.style.backgroundColor = '#d8efff'
+      packageForm.style.opacity = 0.8
       packageForm.style.width = currentCopiedElement.offsetWidth + 'px'
       packageForm.style.height = currentCopiedElement.offsetHeight + 'px'
 
@@ -124,6 +123,8 @@ export default {
       packageForm.style.left = left + 'px'
       packageForm.style.top = top + 'px'
       packageForm.style.zIndex = '1000'
+      packageForm.style.boxShadow = '0 5px 10px 0 rgb(0 0 0 / 10%)'
+
       this.drawActionAnimation(
         currentCopiedElement.offsetWidth,
         currentCopiedElement.offsetHeight,
@@ -156,8 +157,8 @@ export default {
       const context = canvas.getContext('2d')
       const gradient = context.createLinearGradient(0, 0, 30, 90)
       gradient.addColorStop(0, 'white')
-      gradient.addColorStop(0.5, 'rgb(235, 238, 245)')
-      gradient.addColorStop(1, '#EBEEF5')
+      gradient.addColorStop(0.5, '#f3fcff')
+      gradient.addColorStop(1, '#e9faff')
       context.fillStyle = gradient
       context.rotate(Math.PI / 10)
       context.translate(0, -10)
@@ -291,11 +292,7 @@ export default {
           attributeFilter: ['class'],
         })
 
-        this.newRowHandler(
-          insertIndex - 1,
-          cloneDeep(this.constraints[index]),
-          true /*no transition*/
-        )
+        this.newRowHandler(insertIndex - 1, index, true /*no transition*/)
 
         this.placeHolderEleNumber--
       }

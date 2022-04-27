@@ -4,7 +4,6 @@ import { MenuEnum } from '../utils/Enum'
 export default {
   data() {
     return {
-      startEngine: false,
       beginRowIndex: Number.POSITIVE_INFINITY,
       endRowIndex: Number.POSITIVE_INFINITY,
       height: 0,
@@ -16,13 +15,6 @@ export default {
     }
   },
   watch: {
-    startEngine(val) {
-      if (val) {
-        document.body.addEventListener('mousemove', this.selectEvent)
-      } else {
-        document.body.removeEventListener('mousemove', this.selectEvent)
-      }
-    },
     endRowIndex(val) {
       if (Number.isSafeInteger(val)) {
         this.findSelectElement()
@@ -67,11 +59,6 @@ export default {
       if (this.selectElement.length) this.resetSelectElement()
     },
     initSelectEvent(startElement) {
-      this.startEngine = true
-      this.draggableSection.addEventListener(
-        'contextmenu',
-        this.contextmenuEventInSelect
-      )
       this.top = this.findPagePosition(
         document.querySelector('.context-box')
       ).top
@@ -85,17 +72,7 @@ export default {
       this.endRowIndex = this.findRowIndex(e.pageY)
     },
     finishSelect() {
-      this.startEngine = false
-    },
-    contextmenuEventInSelect(e) {
-      if (this.selectElement.length) {
-        e.preventDefault()
-        this.contextMenuActivation({
-          event: e,
-          options: [MenuEnum.CopyAll, MenuEnum.DeleteAll],
-          range: [this.beginRowIndex, this.endRowIndex],
-        })
-      }
+      //do something
     },
     resetSelectElement() {
       this.selectElement = []
@@ -160,7 +137,7 @@ export default {
           (context.globalAlpha === 1 ? 0.1 : context.globalAlpha) +
           (out ? -0.04 : 0.04)
         context.globalCompositionOperation = 'source-out'
-        context.fillStyle = '#e6effc'
+        context.fillStyle = '#c1e9ff'
         context.fillRect(0, 0, width, height)
         context.moveTo(-50, height)
         context.lineTo(width / 2 - 50, 0)
@@ -172,7 +149,7 @@ export default {
         context.lineTo(width / 2 - 50, height)
         context.lineTo(width - 50, 0)
 
-        context.fillStyle = '#f5f9ff'
+        context.fillStyle = '#cfeeff'
         context.fill()
 
         if (!out && context.globalAlpha >= 0.6) return
@@ -182,11 +159,5 @@ export default {
       }
       requestAnimationFrame(animation)
     },
-  },
-  beforeDestroy() {
-    this.draggableSection.removeEventListener(
-      'contextMenu',
-      this.contextmenuEventInSelect
-    )
   },
 }

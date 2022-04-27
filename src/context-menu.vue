@@ -1,5 +1,5 @@
 <script>
-import { MenuEnum, MenuText } from './utils/Enum'
+import { MenuText } from './utils/Enum'
 
 export default {
   render(_c) {
@@ -62,6 +62,8 @@ export default {
     return { display: false }
   },
   mounted() {
+    console.log('menu')
+
     this.initContextMenu()
     this.initEvent()
   },
@@ -70,31 +72,17 @@ export default {
       this.display = true
     },
     initEvent() {
-      document.addEventListener('contextmenu', this.contextMenuEvent)
-      document.addEventListener('click', this.closeMenu)
+      document.body.addEventListener('mouseup', this.closeMenu)
     },
-    contextMenuEvent(e) {
-      this.display = false
-      if (
-        !Array.from(e.path).some(
-          (ele) => ele instanceof HTMLElement && ele.tagName === 'CANVAS'
-        )
-      )
-        this.$destroy()
-      this.pageX = e.pageX
-      this.pageY = e.pageY
-      Promise.resolve().then(() => {
-        this.display = true
-      })
-    },
+
     closeMenu(e) {
-      this.$destroy()
+      //需要等待click事件回调之后销毁，因此选择宏任务执行
+      setImmediate(() => this.$destroy())
     },
   },
   beforeDestroy() {
     document.body.removeChild(this.$el)
-    document.removeEventListener('contextmenu', this.contextMenuEvent)
-    document.removeEventListener('click', this.closeMenu)
+    document.body.removeEventListener('mouseup', this.closeMenu)
   },
 }
 </script>
@@ -103,7 +91,7 @@ export default {
   color: #717377;
   font-size: 13px;
   background-color: white;
-  border: 1px solid #ebeef5;
+  border: 1px solid #d1e4ff;
   border-radius: 6px;
   box-shadow: 4px 4px 10px 1px rgb(0 0 0 / 10%);
   position: absolute;

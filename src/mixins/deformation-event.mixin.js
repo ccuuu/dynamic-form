@@ -22,6 +22,11 @@ export default {
           originX,
           position: this.findPagePosition(val),
         }
+        console.log(this.findPagePosition(val), val)
+        if (this.findSiblingLength(val) === 1) {
+          return (val.isSingle = true)
+        }
+
         const sibling = this.findSingleChildrenByClass(
           this.findParentByClass(val, 'el-col')[
             changeInLeftSideEle ? 'previousSibling' : 'nextSibling'
@@ -33,16 +38,16 @@ export default {
           originWidth: sibling.offsetWidth,
         }
 
-        document.body.addEventListener('mousemove', this.mousemoveEvent)
+        // document.body.addEventListener('mousemove', this.mousemoveEvent)
       } else {
-        document.body.removeEventListener('mousemove', this.mousemoveEvent)
+        // document.body.removeEventListener('mousemove', this.mousemoveEvent)
         this.elementInfo = null
       }
     },
   },
   methods: {
     resolveDeformInDownEvent(target, e) {
-      if (this.findSiblingLength(target) === 1) return
+      //   if (this.findSiblingLength(target) === 1) return
       const { left, right } = this.findPagePosition(target)
       target.setAttribute(
         'data-change-left-element',
@@ -94,9 +99,13 @@ export default {
         this.findParentByClass(e.target, 'context-box') ||
         this.currentDeformElement
       if (!target) return
-      this.toggleDomClickStyle(target, false /*remove style*/)
       if (!this.currentDeformElement) return
-      this.refreshCurrentRow(this.currentDeformElement)
+      this.toggleDomClickStyle(
+        this.currentDeformElement,
+        false /*remove style*/
+      )
+      !this.currentDeformElement.isSingle &&
+        this.refreshCurrentRow(this.currentDeformElement)
       //for copyElement
       if (keepCurrentEle) return
       this.currentDeformElement = null
