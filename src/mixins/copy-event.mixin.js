@@ -104,7 +104,7 @@ export default {
       packageForm.appendChild(copy)
 
       packageForm.style.borderRadius = '10px'
-      packageForm.style.backgroundColor = '#d8efff'
+      packageForm.style.backgroundColor = '#d8e3ff'
       packageForm.style.opacity = 0.8
       packageForm.style.width = currentCopiedElement.offsetWidth + 'px'
       packageForm.style.height = currentCopiedElement.offsetHeight + 'px'

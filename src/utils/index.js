@@ -365,4 +365,37 @@ const constraints = [
     clearIcon: '',
     unlinkPanels: true,
   },
+
+  //upload
+  {
+    is: 'upload',
+    headers: '',
+    multiple: '',
+    data: '',
+    name: '',
+    withCredentials: '',
+    showFileList: '',
+    drag: false,
+    accept: '',
+    onPreview() {},
+    onRemove() {},
+    onSuccess() {},
+    onError() {},
+    onProgress() {},
+    onChange() {},
+    beforeUpload() {},
+    beforeRemove() {},
+    onExceed() {},
+    listType: '',
+    autoUpload: false,
+    fileList: [],
+    httpRequest: '',
+    disabled: false,
+    limit: '',
+  },
+
+  //slotScope
+  {
+    slotScope: '',
+  },
 ]

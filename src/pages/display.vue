@@ -262,7 +262,7 @@ export default {
         return
       }
       dom.style.zIndex = '1000'
-      dom.style.backgroundColor = '#daf0ff'
+      dom.style.backgroundColor = '#d8e3ffbd'
       dom.style.transition = 'background 0.25s'
     },
     deleteRowHandler(begin, end = begin) {
@@ -503,17 +503,17 @@ export default {
   50% {
     transform: scale(1.015, 1.1);
     opacity: 1;
-    background-color: #d8efff;
+    background-color: #d8e3ff;
   }
   100% {
     transform: scale(1, 1);
   }
 }
 .box-card {
-  -webkit-backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(12px);
   background-color: transparent !important;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(6px);
   border-radius: 12px;
-  box-shadow: 0 10px 20px 10px rgb(0 0 0 / 10%);
+  box-shadow: 0 2px 12px 0 rgb(109 140 193 / 63%) !important;
 }
 </style>

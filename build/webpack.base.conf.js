@@ -80,6 +80,23 @@ module.exports = {
           name: utils.assetsPath('fonts/[name].[hash:7].[ext]'),
         },
       },
+      {
+        test: /\.scss$/,
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              includePaths: ['absolute/path/a', 'absolute/path/b'],
+            },
+          },
+        ],
+      },
       // {
       //   test: /\.workers\.js$/,
       //   use: {
