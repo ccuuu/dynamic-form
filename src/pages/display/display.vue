@@ -31,13 +31,13 @@
 </template>
 <script>
 import DisplayDynamicForm from './display-dynamic-form.vue'
-import copyEventMixin from '../mixins/copy-event.mixin'
-import selectEventMixin from '../mixins/select-event.mixin'
-import deformationEventMixin from '../mixins/deformation-event.mixin'
-import contextmenuMixin from '../mixins/contextmenu.mixin'
+import copyEventMixin from '../../mixins/copy-event.mixin'
+import selectEventMixin from '../../mixins/select-event.mixin'
+import deformationEventMixin from '../../mixins/deformation-event.mixin'
+import contextmenuMixin from '../../mixins/contextmenu.mixin'
 
-import { cache, cloneDeep } from '../utils'
-import { MoveCaseEnum } from '../utils/Enum'
+import { cache, cloneDeep } from '../../utils'
+import { MoveCaseEnum } from '../../utils/Enum'
 
 export default {
   mixins: [
@@ -57,6 +57,7 @@ export default {
       draggableSection: null,
       constraints: [],
       moveCase: null,
+      formatObserveContain: null,
     }
   },
   props: {
@@ -65,19 +66,23 @@ export default {
       required: true,
     },
   },
-
-  mounted() {
+  created() {
     this.rewriteArrayMethods(this.constraints)
-
-    this.draggableSection = this.$refs.draggableSection
-
     this.newRowHandler()
+  },
+  mounted() {
+    this.draggableSection = this.$refs.draggableSection
 
     document.body.addEventListener('mousedown', this.mousedownEvent)
     document.body.addEventListener('mouseup', this.mouseupEvent)
-    document.body.addEventListener('contextmenu', this.contextmenuEvent)
+    this.draggableSection.addEventListener('contextmenu', this.contextmenuEvent)
   },
   methods: {
+    //将一个非observe的任意引用类型变量变成observe对象
+    formatObserve(item) {
+      Promise.resolve().then(() => (this.formatObserveContain = null))
+      return (this.formatObserveContain = item)
+    },
     rewriteArrayMethods(arr) {
       if (!Array.isArray(arr)) return
       const origin = arr.__proto__
@@ -115,7 +120,6 @@ export default {
             (col) => (col.forceUpdate = col.forceUpdate || 1)
           )
           const res = origin[method].call(this, ...basic, formatArgs)
-          console.log(this, basic)
           return res
         })
 
@@ -129,7 +133,7 @@ export default {
             return args.map((i) => (!Array.isArray(i) ? [i] : i))
           })
 
-          if (!formatArgs.length) return origin[method].call(this, ...basic)
+          if (!formatArgs.length) return origin[method].apply(this, basic)
 
           const buffer = new Uint32Array(1)
           //single params
@@ -157,9 +161,13 @@ export default {
     genColItem(columns = 24) {
       return { columns }
     },
+    isEventInSection(e) {
+      return (e.path || []).some((item) => item === this.draggableSection)
+    },
     mousedownEvent(e) {
-      e.stopPropagation()
-      e.preventDefault()
+      if (this.isEventInSection(e)) {
+        e.preventDefault()
+      }
       //不在区域内，点击任意键都清除select
       if (
         !Array.from(e.path).some(
@@ -171,7 +179,6 @@ export default {
       //点击左键，无论鼠标位置，固定清除select
       this.resolveSelectInDownEvent()
 
-      //清除上一次操作所选中的项
       document.addEventListener('mousemove', this.mousemoveEvent)
 
       let target = this.findParentByClass(e.target, 'context-box')
@@ -185,7 +192,7 @@ export default {
     },
     mousemoveEvent(e) {
       if (e.button !== 0) return
-      e.preventDefault()
+      // e.preventDefault()
       this.resolveEvent(e)
 
       //event
@@ -234,7 +241,7 @@ export default {
     finishEvent(e, keepCurrentEle) {
       this.clearCopyTimer()
 
-      //基于事件的依赖元素结束事件，而非moveCase。因为在某些时候需要在一种moveCase
+      //基于事件的依赖属性结束事件，而非moveCase。因为在某些时候需要在一种moveCase
       //的时候手动finish另一项事件
       if (this.currentCopiedElement) {
         return this.finishCopy(e)
@@ -285,7 +292,7 @@ export default {
       this.forceUpdateRow(row)
     },
     formatNewRowArgs(args) {
-      let index = args[0] || 0,
+      let index = Number.isSafeInteger(args[0]) ? args[0] : 0,
         noTransition = !Number.isSafeInteger(args[args.length - 1])
           ? args[args.length - 1]
           : false,
@@ -300,10 +307,9 @@ export default {
         endIndex,
         noTransition,
       } = this.formatNewRowArgs(args)
-
-      let rows = []
+      let rows = this.formatObserve([])
       if (!Number.isSafeInteger(startIndex)) {
-        rows = [this.genColItem()]
+        rows.push([this.genColItem()])
       } else {
         for (let i = startIndex; i <= endIndex; i++) {
           rows.push(cloneDeep(this.constraints[i]))
@@ -322,36 +328,42 @@ export default {
       }
       return rows
     },
-    defineNoTransitionRows(rows) {
+    defineNoTransitionRows(rows = []) {
       const _this = this
       rows.forEach((row) => {
-        Object.defineProperty(row, 'noTransition', {
-          configurable: true,
-          enumerable: false,
-          get() {
-            //Micro task cannot be used here,because it will cause repeated renders in a task queue
-            //Implicit removal of this property must wait until the dom update is complete
+        console.log('defineNoTransitionRows', row)
 
-            //看起来似乎新增的DOM会在下一帧再执行css中的过度，而不是创建之初就应用。
-            //因为删除时机只有在requestAnimationFrame中能够使dom挂载上动画效果，
-            //而任何立即执行的微任务或宏任务都无法实现
+        row &&
+          Object.defineProperty(row, 'noTransition', {
+            configurable: true,
+            enumerable: false,
+            get() {
+              //Micro task cannot be used here,because it will cause repeated renders in a task queue
+              //Implicit removal of this property must wait until the dom update is complete
 
-            //如果仅在dom创建的时机就删除noTransition，会导致执行的动画效果仍然应
-            //用vue的过渡动画
-            const observer = new MutationObserver(() => {
-              requestAnimationFrame(() => _this.$delete(this, 'noTransition'))
-              observer.disconnect()
-            })
-            observer.observe(_this.draggableSection, {
-              subtree: true,
-              attributes: true,
-              attributeOldValue: true,
-              attributeFilter: ['class'],
-            })
-            return true
-          },
-        })
+              //看起来似乎新增的DOM会在下一帧再执行css中的过度，而不是创建之初就应用。
+              //因为删除时机只有在requestAnimationFrame中能够使dom挂载上动画效果，
+              //而任何立即执行的微任务或宏任务都无法实现
+
+              //如果仅在dom创建的时机就删除noTransition，会导致执行的动画效果仍然应
+              //用vue的过渡动画
+              if (!_this.draggableSection) return
+              const observer = new MutationObserver((e) => {
+                console.log(e)
+                requestAnimationFrame(() => _this.$delete(this, 'noTransition'))
+                observer.disconnect()
+              })
+              observer.observe(_this.draggableSection, {
+                subtree: true,
+                attributes: true,
+                attributeOldValue: true,
+                attributeFilter: ['class'],
+              })
+              return true
+            },
+          })
       })
+      console.log(rows)
     },
     waitingMacroTaskHook() {
       this.waitingMacroTask = true
@@ -362,9 +374,10 @@ export default {
 
       //chrome的timeout精准度为4ms，DOM完成动画的时间为300ms,但是看起来似乎当
       //多个动画项叠加在一起的时候会存在时延(或许是vue animation所导致的)，从而
-      //导致304并不能获取到最终正确的dom的元素信息
-      //此时，并不确定所操作项的数量，因此，妥协措施是使用一个较大的timeout
-      //但是这种方案实在太蠢了，需要优化...
+      //导致304并不能获取到最终正确的dom的元素信息。并且在页面卡顿的时候，该延迟
+      //会不确定的增加
+      //此时，并不确定所操作项的数量或页面是否卡顿，因此，妥协措施是使用一个较大的
+      //timeout。但是这种方案实在太蠢了，需要优化...
 
       this.waitingMacroTaskTimer = setTimeout(() => {
         requestAnimationFrame(() => (this.waitingMacroTask = false))
@@ -402,6 +415,7 @@ export default {
     addElement(e) {
       if (!this.form.formType || !this.eventNotInSection(e)) return
       const position = this.findElementContainer(e.pageX, e.pageY)
+
       for (const [key, item] of Object.entries(this.form)) {
         this.$set(position, key, item)
       }
@@ -492,6 +506,10 @@ export default {
   beforeDestroy() {
     document.body.removeEventListener('mousedown', this.mousedownEvent)
     document.body.removeEventListener('mouseup', this.mouseupEvent)
+    this.draggableSection.removeEventListener(
+      'contextmenu',
+      this.contextmenuEvent
+    )
   },
 }
 </script>

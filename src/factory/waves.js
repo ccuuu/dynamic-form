@@ -36,6 +36,7 @@ class Waves {
         },
         false
       )
+    this.animationId = null
   }
   init(preload) {
     const options = this.options
@@ -69,8 +70,7 @@ class Waves {
   }
   animate() {
     this.render()
-
-    window.requestAnimationFrame(this.animate.bind(this))
+    this.animationId = window.requestAnimationFrame(this.animate.bind(this))
   }
   clear() {
     this.ctx.clearRect(0, 0, this.width, this.height)
@@ -113,6 +113,9 @@ class Waves {
     const c = Math.floor(127 * Math.sin(0.3 * this.hue + 4) + 128)
 
     this.color = 'rgba(' + a + ',' + b + ',' + c + ', 0.1)'
+  }
+  stop() {
+    window.cancelAnimationFrame(this.animationId)
   }
 }
 

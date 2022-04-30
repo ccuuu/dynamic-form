@@ -1,17 +1,19 @@
 export function cache(fn) {
   const caches = new WeakMap()
-  return function(params, useCache = true) {
-    if (!useCache) return fn(params)
+  return function(...args) {
+    if (args[args.length - 1] === false)
+      return fn.apply(Object.create(null), args)
     // console.log(
     //   'use cache: ',
-    //   caches.has(params),
-    //   params,
-    //   fn(params),
-    //   caches.get(params)
+    //   caches.has(args[0]),
+    //   args[0],
+    //   fn(args[0]),
+    //   caches.get(args[0])
     // )
-    return (caches.has(params) ? caches : caches.set(params, fn(params))).get(
-      params
-    )
+    return (caches.has(args[0])
+      ? caches
+      : caches.set(args[0], fn.apply(Object.create(null), args))
+    ).get(args[0])
   }
 }
 
@@ -45,6 +47,22 @@ export const cloneDeep = (value) => {
 //inlineMessage：以行内形式展示校验信息
 //prop：指定表单的prop，若不提供则使用dataKey作为prop
 //labelWidth：label的宽度
+
+//基础项：
+const temp = {
+  is: 'radio',
+  label: 'label',
+  labelLeft: '',
+  labelRight: '',
+  prop: 'prop',
+  name: 'name',
+  dataKey: 'key1',
+  required: true,
+
+  //使用slotScope以后，除了cols属性，其他都会失效
+  slotScope: '',
+}
+
 const constraints = [
   //radio
   {
@@ -54,16 +72,13 @@ const constraints = [
     name: 'name',
     dataKey: 'key1',
     required: true,
-    rules: [],
     cols: 12,
     formCols: 12,
+    labelWidth: '50px',
+
     disabled: false,
     //element
     element: {
-      error: 'error',
-      showMessage: true,
-      inlineMessage: true,
-      labelWidth: '50px',
       border: true,
       size: 'medium',
       radioButton: false,
@@ -71,6 +86,7 @@ const constraints = [
       fill: 'yellow',
     },
 
+    optionsNumberInRow: 4,
     options: [
       {
         text: 'text',
@@ -399,3 +415,15 @@ const constraints = [
     slotScope: '',
   },
 ]
+
+//el-forms
+//该组件不统一封装在dynamic-form中，可以自己设定
+const elForms = {
+  error: 'error',
+  showMessage: true,
+  inlineMessage: true,
+  labelWidth: '50px',
+  rules: [],
+  inline: false,
+  labelPosition: '',
+}

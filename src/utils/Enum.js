@@ -31,4 +31,15 @@ const MenuText = {
   InsertAfter: '在此之后插入',
   ReviseInfo: '修改信息',
 }
-export { MoveCaseEnum, MenuEnum, MenuAction, MenuText }
+
+const FormType = {
+  Input: 'input',
+  Radio: 'radio',
+  Switch: 'switch',
+  Checkbox: 'checkbox',
+  TextArea: 'textArea',
+  Date: 'date',
+  Select: 'select',
+  SlotScope: 'slotScope',
+}
+export { MoveCaseEnum, MenuEnum, MenuAction, MenuText, FormType }

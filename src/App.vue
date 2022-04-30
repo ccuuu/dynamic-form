@@ -1,6 +1,6 @@
 <script>
-import display from './pages/display.vue'
-import control from './pages/control.vue'
+import display from './pages/display/display.vue'
+import control from './pages/control/control.vue'
 
 import { Waves } from './factory/waves'
 
@@ -52,15 +52,7 @@ export default {
       Waves: null,
     }
   },
-  created() {
-    console.log(this.$store)
-    this.clientWidth = document.body.clientWidth
-    this.clientHeight = document.body.clientHeight
-    window.onresize = () => {
-      this.clientWidth = document.body.clientWidth
-      this.clientHeight = document.body.clientHeight
-    }
-  },
+  created() {},
   mounted() {
     this.initCanvas()
   },
@@ -70,10 +62,15 @@ export default {
     },
     initCanvas() {
       const waves = new Waves('#holder', {
-        waves: 3,
-        width: 300,
+        waves: 4,
+        width: 100,
       })
       waves.animate()
+      waves.stop()
+
+      setTimeout(() => {
+        waves.animate()
+      }, 300)
     },
   },
 }

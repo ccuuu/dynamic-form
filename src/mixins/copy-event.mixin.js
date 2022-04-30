@@ -140,7 +140,9 @@ export default {
             top: top,
             width: packageForm.offsetWidth,
             height: packageForm.offsetHeight,
-            index: Math.floor(top / packageForm.offsetHeight),
+            index: Math.floor(
+              (top - packageForm.offsetHeight) / packageForm.offsetHeight
+            ),
           },
         },
       }
@@ -291,7 +293,6 @@ export default {
           attributes: true,
           attributeFilter: ['class'],
         })
-
         this.newRowHandler(insertIndex - 1, index, true /*no transition*/)
 
         this.placeHolderEleNumber--

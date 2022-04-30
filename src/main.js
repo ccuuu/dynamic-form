@@ -7,11 +7,13 @@ import store from './store'
 
 import ElementUI from 'element-ui'
 import ContextMenu from './context-menu'
+import { EventEmitter } from './factory/eventEmitter'
 
 import 'element-ui/lib/theme-chalk/index.css'
 
+Vue.prototype.$eventEmitter = new EventEmitter()
+
 Vue.prototype.$contextMenu = ({ options, event }) => {
-  if (document.querySelector('.context-menu')) return
   const createMenu = Vue.extend({
     ...ContextMenu,
     data() {
