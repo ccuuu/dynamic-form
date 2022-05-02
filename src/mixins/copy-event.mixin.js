@@ -283,6 +283,7 @@ export default {
         //The principle of vue transition is to add the class name
         //If the timing is incorrect, it will cause the page to flicker
         const { prePlaceholderElement } = this
+
         const observer = new MutationObserver(() => {
           //clear
           container.removeChild(prePlaceholderElement)
@@ -293,6 +294,7 @@ export default {
           attributes: true,
           attributeFilter: ['class'],
         })
+
         this.newRowHandler(insertIndex - 1, index, true /*no transition*/)
 
         this.placeHolderEleNumber--

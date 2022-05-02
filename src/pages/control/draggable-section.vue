@@ -28,7 +28,7 @@ export default {
         'div',
         {
           ref: 'draggableSection',
-          class: 'draggable-section',
+          attrs: { id: 'draggable-section' },
           directives: [
             {
               name: 'drag',
@@ -391,12 +391,13 @@ export default {
         this.$emit('update:collectInfoElement', this.obtainType(e))
       }
       if (e.button !== 0) return
-      Promise.resolve().then(() => {
-        this.resetForm()
-      })
-      this.$emit('addElement', e)
-      if (!this.currentElement) return
-      this.currentElement = null
+      if (true) {
+        Promise.resolve().then(() => {
+          this.resetForm()
+        })
+        this.$emit('addElement', e)
+      }
+      if (this.currentElement) this.currentElement = null
     },
     preventCursorStyle(e) {
       if (!e.target || e.target.style.cursor === 'pointer') return
@@ -470,11 +471,13 @@ export default {
 }
 </script>
 <style>
-.draggable-section {
+#draggable-section {
+  position: relative;
   margin-top: 24px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
   padding: 8px;
+}
+#draggable-section .el-row {
+  z-index: 5;
 }
 @keyframes clone {
   0% {
@@ -498,5 +501,37 @@ export default {
   color: gray;
   transform: translate(4px, -8px);
   display: inline-block;
+}
+
+#draggable-section::before,
+#draggable-section::after {
+  content: '';
+  border: 4px solid #abbde7;
+  opacity: 0.8;
+  position: absolute;
+  width: calc(100% + 8px);
+  height: calc(100% - 8px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  -webkit-transition: all 0.5s;
+  transition: all 0.5s;
+  z-index: 0;
+}
+
+#draggable-section::after {
+  clip-path: inset(92% 95% 0 0);
+}
+#draggable-section::before {
+  clip-path: inset(0 0 92% 95%);
+}
+#draggable-section:hover::after {
+  clip-path: inset(50% 50% 0 0);
+  border: 4px solid #b8c5ff99;
+}
+#draggable-section:hover::before {
+  clip-path: inset(0 0 50% 50%);
+  border: 4px solid #b8c5ff99;
 }
 </style>

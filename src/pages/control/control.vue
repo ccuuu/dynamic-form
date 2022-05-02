@@ -7,7 +7,7 @@ export default {
   render(_c) {
     const _this = this
     const createBasic = () => {
-      return _c('div', [
+      return _c('div', { style: 'padding-right: 8px;' }, [
         _c('el-row', { style: 'margin-bottom:16px;font-weight: bold;' }, [
           _c(
             'el-col',
@@ -50,6 +50,7 @@ export default {
           'el-button',
           {
             style: 'margin-top:20px',
+            attrs: { id: 'export-button' },
             props: { type: 'primary' },
             on: { click: _this.onSubmit },
           },
@@ -78,4 +79,48 @@ export default {
   },
 }
 </script>
-<style scoped></style>
+<style scoped>
+#export-button {
+  background-color: #fff0;
+  border-radius: 6px;
+
+  /* height: 40px;
+  width: 100px; */
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+#export-button::before {
+  content: '立即生成';
+  line-height: 28px;
+  width: 86px;
+  height: 28px;
+  background-color: #9cb3e7;
+  border-color: #bdcdf1;
+  border-radius: 4px;
+  position: absolute;
+  z-index: 10;
+  top: 5px;
+  left: 5px;
+  transition: all 0.4s;
+}
+#export-button::after {
+  content: '';
+  width: 118px;
+  height: 58px;
+
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  background-color: #bacaef;
+  transform: rotate(-90deg);
+  transform-origin: left bottom;
+  transition: all 0.4s;
+}
+#export-button:hover::after {
+  transform: rotateZ(0deg);
+}
+#export-button:hover::before {
+  background-color: #bacaef !important;
+}
+</style>

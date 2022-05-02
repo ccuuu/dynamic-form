@@ -313,7 +313,7 @@ export default {
 }
 .list-complete-enter, .list-complete-leave-to
 /* .list-complete-leave-active for below version 2.1.8 */ {
-  opacity: 0.5;
+  opacity: 0;
   height: 0px;
   z-index: -1;
 }

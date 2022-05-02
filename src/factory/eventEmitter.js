@@ -1,5 +1,5 @@
 let eventIndex = 0
-const _event = {}
+let _event = Object.create(null)
 export class EventEmitter {
   constructor() {}
   showEvent() {
@@ -41,6 +41,7 @@ export class EventEmitter {
   }
 
   off(eventName, fn) {
+    if (!eventName) _event = Object.create(null)
     if (!_event[eventName]) {
       console.error('no such event')
       return this
@@ -59,7 +60,7 @@ export class EventEmitter {
             }
           }
         }
-        console.error(`${eventName} don't have ${fn} callback function`)
+        console.error(`${eventName} don't have such callback function: ${fn}`)
         return this
       }
     }
@@ -68,7 +69,10 @@ export class EventEmitter {
   }
   once(eventName, fn) {
     const func = function() {
-      return fn()
+      return fn.apply(
+        Object.create(null),
+        Array.prototype.slice.call(arguments)
+      )
     }
     func.once = true
     this.on(eventName, func)

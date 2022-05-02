@@ -349,7 +349,11 @@ export default {
               //用vue的过渡动画
               if (!_this.draggableSection) return
               const observer = new MutationObserver((e) => {
-                console.log(e)
+                if (!e.some(includeAnimation)) return
+
+                function includeAnimation(item) {
+                  return item.oldValue.includes('list-complete-enter')
+                }
                 requestAnimationFrame(() => _this.$delete(this, 'noTransition'))
                 observer.disconnect()
               })

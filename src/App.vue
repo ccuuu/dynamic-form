@@ -49,7 +49,6 @@ export default {
         labelRight: null,
         formType: null,
       },
-      Waves: null,
     }
   },
   created() {},

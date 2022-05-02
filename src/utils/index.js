@@ -110,10 +110,6 @@ const constraints = [
     disabled: false,
     //element
     element: {
-      error: 'error',
-      showMessage: true,
-      inlineMessage: true,
-      labelWidth: '50px',
       border: false,
       size: 'medium',
       min: 1,

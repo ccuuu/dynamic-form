@@ -103,7 +103,7 @@ export default {
           },
           [
             createCol(
-              9,
+              7,
               createFormItem(
                 'textColor:',
                 '78px',
@@ -120,7 +120,7 @@ export default {
               )
             ),
             createCol(
-              9,
+              7,
               createFormItem(
                 'fill:',
                 _c('el-color-picker', {
@@ -136,7 +136,7 @@ export default {
               )
             ),
             createCol(
-              4,
+              6,
               _c(
                 'el-button',
                 {
