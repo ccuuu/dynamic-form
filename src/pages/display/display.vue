@@ -38,6 +38,7 @@ import contextmenuMixin from '../../mixins/contextmenu.mixin'
 
 import { cache, cloneDeep } from '../../utils'
 import { MoveCaseEnum } from '../../utils/Enum'
+import { Constraints } from '../../factory/create-constraints'
 
 export default {
   mixins: [
@@ -58,6 +59,7 @@ export default {
       constraints: [],
       moveCase: null,
       formatObserveContain: null,
+      test: new Constraints(),
     }
   },
   props: {
@@ -67,6 +69,7 @@ export default {
     },
   },
   created() {
+    console.log(this.test)
     this.rewriteArrayMethods(this.constraints)
     this.newRowHandler()
   },
@@ -367,7 +370,6 @@ export default {
             },
           })
       })
-      console.log(rows)
     },
     waitingMacroTaskHook() {
       this.waitingMacroTask = true

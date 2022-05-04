@@ -317,7 +317,7 @@ export default {
   },
   methods: {
     resetForm() {
-      this.form.label = 'default a label'
+      // this.form.label = 'default a label'
       this.form.labelLeft = null
       this.form.labelRight = null
       this.form.formType = null
