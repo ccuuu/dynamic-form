@@ -2,6 +2,7 @@
 import display from './pages/display/display.vue'
 import control from './pages/control/control.vue'
 
+import { Form } from './factory/Form'
 import { Waves } from './factory/waves'
 
 export default {
@@ -25,9 +26,6 @@ export default {
             9,
             _c('control', {
               props: { form: _this.form },
-              on: {
-                addElement: _this.addElement,
-              },
             })
           ),
         ]),
@@ -43,33 +41,26 @@ export default {
   data() {
     return {
       baseData: null,
-      form: {
-        label: 'default a label',
-        labelLeft: null,
-        labelRight: null,
-        formType: null,
-      },
+      form: new Form(),
     }
   },
-  created() {},
   mounted() {
     this.initCanvas()
   },
   methods: {
-    addElement(e) {
-      this.$refs.display && this.$refs.display.addElement(e)
-    },
     initCanvas() {
       const waves = new Waves('#holder', {
         waves: 4,
         width: 100,
       })
-      waves.animate()
+      setImmediate(()=>{
+        waves.animate()
       waves.stop()
 
       setTimeout(() => {
         waves.animate()
       }, 300)
+      })
     },
   },
 }

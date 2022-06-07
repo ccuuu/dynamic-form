@@ -1,7 +1,7 @@
 <script>
 import options from './options.vue'
 
-const isFull = true
+const isFull = false
 const sizeOptions = ['medium', 'small', 'mini']
 export default {
   name: 'radioCollector',
@@ -15,20 +15,33 @@ export default {
         isFull ? createFullCollector() : null,
         !isFull
           ? _c(
-              'el-button',
-              {
-                style: 'margin-bottom:10px',
-                props: { round: true, size: 'mini' },
-                on: {
-                  click() {
-                    _this.addOption()
+              'div',
+              { style: 'z-index:10' },
+
+              [
+                _c(
+                  'el-button',
+                  {
+                    style:
+                      'margin-bottom:10px;margin-bottom: 10px;position: absolute;right: 0;z-index: 1;',
+                    props: { style: 'z-index:10', round: true, size: 'mini' },
+                    on: {
+                      click() {
+                        _this.addOption()
+                      },
+                    },
                   },
-                },
-              },
-              '+options'
+                  '+options'
+                ),
+              ]
             )
           : null,
-        _c('options', { props: { options: _this.uniqueInfo.options } }),
+        _c('options', {
+          props: {
+            options: _this.uniqueInfo.options,
+            tabIndex: _this.tabIndex,
+          },
+        }),
       ])
     }
     const createFullCollector = () => {
@@ -175,38 +188,30 @@ export default {
   },
   data() {
     return {
-      uniqueInfo: {
-        border: true,
-        size: null,
-        radioButton: null,
-        textColor: null,
-        fill: null,
-        options: [],
-      },
+      tabIndex: '0',
     }
   },
-  created() {
-    this.addOption()
-    isFull && this.genFormInfo()
+  props: {
+    uniqueInfo: {
+      type: Object,
+      require: true,
+    },
   },
   methods: {
     addOption() {
+      if (Number(this.tabIndex) >= 3) return
+      this.tabIndex = this.tabIndex / 1 + 1 + ''
+
       this.uniqueInfo.options.push(this.genOption())
     },
     genOption() {
+      const lastIndex = this.uniqueInfo.options[
+        this.uniqueInfo.options.length - 1
+      ].value.match(/\d+$/)[0]
       return {
         text: 'default',
-        value: `options_${this.uniqueInfo.options.length}`,
+        value: `options_${lastIndex / 1 + 1}`,
       }
-    },
-    genFormInfo() {
-      this.uniqueInfo = Object.assign({}, this.uniqueInfo, {
-        border: true,
-        size: null,
-        radioButton: null,
-        textColor: null,
-        fill: null,
-      })
     },
   },
 }

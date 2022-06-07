@@ -17,18 +17,19 @@ import {
   CascaderCollector,
 } from './form-information-collection/form-item-collector'
 import { FormType } from '../../utils/Enum'
+import { defaultUniqueInfo } from '../../factory/Form'
 const CollectorEnum = {
-  input: 'input-collector',
-  slider: 'slider-collector',
-  radio: 'radio-collector',
-  switch: 'switch-collector',
-  'time-picker': 'time-picker-collector',
-  'date-time-picker': 'date-time-picker-collector',
-  upload: 'upload-collector',
-  textarea: 'textarea-collector',
-  date: 'date-collector',
-  select: 'select-collector',
-  cascader: 'cascader-collector',
+  [FormType.Input]: 'input-collector',
+  [FormType.Checkbox]: 'slider-collector',
+  [FormType.Radio]: 'radio-collector',
+  [FormType.Switch]: 'switch-collector',
+  [FormType.TimePicker]: 'time-picker-collector',
+  [FormType.DateTimePiker]: 'date-time-picker-collector',
+  [FormType.Upload]: 'upload-collector',
+  [FormType.TextArea]: 'textarea-collector',
+  [FormType.Date]: 'date-collector',
+  [FormType.Select]: 'select-collector',
+  [FormType.Cascader]: 'cascader-collector',
 }
 
 export default {
@@ -98,37 +99,37 @@ export default {
             ]),
           ]
         ),
-        CollectorEnum.hasOwnProperty(this.collectInfoElement)
-          ? _c('div', { attrs: { id: 'collector-container' } }, [
-              _c('div', { attrs: { id: 'background-element' } }),
-              _c(
-                CollectorEnum[_this.collectInfoElement],
-                { class: 'content-container' },
-                {
-                  ref: _this.collectInfoElement,
-                }
-              ),
-            ])
-          : null,
+        //todo：提前收集表单项相关的一些信息。如何与form联系，待设计...
+        // _c('div', { attrs: { id: 'collector-container' } }, [
+        //   _c('div', {
+        //     style: 'z-index:-10',
+        //     attrs: { id: 'background-element' },
+        //   }),
+        //   _c(
+        //     CollectorEnum[_this.collectFormType],
+        //     {
+        //       class: 'content-container',
+        //       style: 'z-index:10;position:relative',
+        //       props: { uniqueInfo: _this.collectInfo },
+        //     },
+        //     {
+        //       ref: _this.collectFormType,
+        //     }
+        //   ),
+        // ]),
         _c('draggable-section', {
+          ref: 'draggableSection',
           props: {
-            collectInfoElement: _this.collectInfoElement,
             form: _this.form,
+            collectInfo: _this.collectInfo,
+            collectFormType: _this.collectFormType,
           },
           on: {
-            'update:collectInfoElement'(val) {
-              _this.collectInfoElement = val
+            resetCollectInfo() {
+              _this.collectFormType = FormType.Input
             },
-            addElement(e) {
-              _this.$emit('addElement', e)
-            },
-            updateFormInfo() {
-              const currentInfo = _this.$refs[_this.form.formType]
-                ? _this.$refs[_this.form.formType].uniqueInfo
-                : {}
-              for (const [key, value] of Object.entries(currentInfo)) {
-                _this.$set(_this.form, key, value)
-              }
+            resetCollectFormType(val) {
+              _this.collectFormType = val
             },
           },
         }),
@@ -224,12 +225,13 @@ export default {
   },
   data() {
     return {
-      collectInfoElement: null,
+      collectInfo: {},
+      collectFormType: FormType.Input,
     }
   },
   watch: {
-    collectInfoElement(val) {
-      console.log(val)
+    collectFormType(val) {
+      this.collectInfo = defaultUniqueInfo(val)
     },
   },
   props: {
@@ -240,7 +242,7 @@ export default {
   },
 }
 </script>
-<style>
+<style lang="scss">
 .el-tabs__nav-wrap::after {
   display: none;
 }
@@ -258,15 +260,7 @@ export default {
   margin: 35px;
   margin-bottom: 42px;
 }
-#background-element {
-  opacity: 0.6;
-  position: absolute;
-  width: calc(100% + 48px);
-  height: calc(100% + 28px);
-  top: -12px;
-  left: -22px;
-  border-radius: 8px;
-}
+
 #collector-container .el-row {
   z-index: 5;
 }

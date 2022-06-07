@@ -1,16 +1,12 @@
 <script>
+import { Constraints } from '../../factory/create-constraints'
+import { FormType } from '../../utils/Enum'
+
 export default {
   render(_c) {
     const _this = this
     const {
-      isInput,
-      isTextArea,
-      isSelect,
-      isCheckBox,
-      isRadio,
-      isSwitch,
-      isDate,
-      constraints,
+      constraints
     } = this
     const createBasic = () => {
       return _c('div', {}, [
@@ -199,7 +195,7 @@ export default {
           ],
           style: { position: 'relative', width: '100%', height: '100%' },
         },
-        item.formType ? [createFormItem(item, index)] : null
+        item.formType ? [FormType[formatText(item.formType)] === FormType.SlotScope ? generate.createSlotScope():  createFormItem(item, index)] : null
       )
     }
     const createFormItem = (item, index) => {
@@ -213,47 +209,131 @@ export default {
       )
     }
     const createItemBasic = (item, index) => {
-      return isInput(item)
-        ? createInput(item)
-        : isTextArea(item)
-        ? createTextArea(item)
-        : isSelect(item)
-        ? createSelect(item)
-        : isCheckBox(item)
-        ? createCheckBox(item)
-        : isRadio(item)
-        ? createRadio(item)
-        : isSwitch(item)
-        ? createSwitch(item)
-        : isDate(item)
-        ? createDate(item)
-        : null
+      const fn = generate[`create${formatText(item.formType)}`]
+      if(typeof fn !== 'function') return 
+      return fn(item)
     }
-    const createInput = (item) => {
+
+    const formatText = (text)=>{
+      return text.replace(/^\w|-\w/g,(w)=>w.toUpperCase().replace('-',''))
+    }
+
+    const generate = {
+     createInput : (item) => {
       return _c('el-input')
+      },
+      createTextarea : (item) => {
+        return _c('el-input', {
+          class:'display__textarea',
+          attrs: {
+            type: 'textarea',
+          },
+        })
+      },
+      createSelect : (item) => {
+        return _c('el-input', { props: { 'suffix-icon': 'el-icon-arrow-down' } })
+      },
+      createCheckbox : (item) => {
+        return (item.options || []).map((option) =>
+          _c('el-checkbox', { props: { value: '1' } }, option.text)
+        )
+      },
+      createRadio :(item) => {
+        return (item.options || []).map((option) =>
+          _c('el-radio', { props: { value: '1' } }, option.text)
+        )
+      },
+      createSwitch : (item) => {
+        return _c('el-switch')
+      },
+      createDate : (item) => {
+        return _c('el-input', { props: { 'prefix-icon': 'el-icon-date' } })
+      },
+      createCascader : (item) => {
+        return _c('el-input', { props: { 'suffix-icon': 'el-icon-arrow-down' } })
+      },
+      createTimePicker : (item) => {
+        return _c('el-input', { props: { 'prefix-icon': 'el-icon-time' } })
+      },
+      createDateTimePiker : (item) => {
+        return _c('el-input', { props: { 'prefix-icon': 'el-icon-time' } })
+      },
+      createSlider : (item) => {
+        return _c('div', { class: 'el-slider' }, [
+          _c('div', { class: 'el-slider__runway' }, [
+            _c('div', {
+              class: 'el-slider__bar',
+              style: 'width: 40%; left: 0%;',
+            }),
+            _c(
+              'div',
+              { class: 'el-slider__button-wrapper', style: 'left:40%;' },
+              [_c('div', { class: 'el-tooltip el-slider__button' })]
+            ),
+          ]),
+        ])
+      },
+      createSlotScope:()=>{
+        return _c(
+          'div',
+          {
+            class: 'el-slot-scope',
+            style:
+              'display:flex;flex-direction:column;height:70px;justify-content:space-between;padding-top:20px',
+          },
+          [
+            _c(
+              'div',
+              {
+                style: `width:50%;`,
+                class: 'slot-scope-skeleton',
+              },
+              [
+                _c(
+                  'span',
+                  {
+                    class: 'slot-scope-font',
+                  },
+                  'SlotScope'
+                ),
+              ]
+            ),
+            _c('div', {
+              style: 'width:100%;',
+              class: 'slot-scope-skeleton',
+            }),
+            _c('div', {
+              style: 'width:100%;',
+              class: 'slot-scope-skeleton',
+            }),
+          ]
+        )
+      },
+      createUpload:()=>{
+        return _c(
+          'div',
+          {
+            class: 'el-upload el-upload--picture-card display__upload',
+            style: 'width: 100%; height: 54px;line-height: 59px;',
+          },
+          [
+            _c('i', { class: 'el-icon-plus' }),
+            _c('input', {
+              class: 'el-upload__input',
+              attrs: { type: 'file', name: 'file' },
+              on: {
+                click(e) {
+                  e.preventDefault()
+                  e.stopPropagation()
+                },
+              },
+            }),
+          ]
+        )
+      }
+      
     }
-    const createTextArea = (item) => {
-      return _c('el-input', {
-        attrs: {
-          type: 'textarea',
-        },
-      })
-    }
-    const createSelect = (item) => {
-      return _c('el-input', { props: { 'suffix-icon': 'el-icon-arrow-down' } })
-    }
-    const createCheckBox = (item) => {
-      return _c('el-checkbox', {})
-    }
-    const createRadio = (item) => {
-      return _c('el-radio')
-    }
-    const createSwitch = (item) => {
-      return _c('el-switch')
-    }
-    const createDate = (item) => {
-      return _c('el-input', { props: { 'prefix-icon': 'el-icon-date' } })
-    }
+
     return createBasic()
   },
   data() {
@@ -270,34 +350,13 @@ export default {
     },
   },
   methods: {
-    isInput(e) {
-      return e.formType === 'input'
-    },
-    isTextArea(e) {
-      return e.formType === 'textArea'
-    },
-    isSelect(e) {
-      return e.formType === 'select'
-    },
-    isCheckBox(e) {
-      return e.formType === 'checkBox'
-    },
-    isRadio(e) {
-      return e.formType === 'radio'
-    },
-    isSwitch(e) {
-      return e.formType === 'switch'
-    },
-    isDate(e) {
-      return e.formType === 'date'
-    },
     stopPropagation(e) {
       e.stopPropagation()
     },
   },
 }
 </script>
-<style scoped>
+<style   lang="scss">
 .height-90 {
   height: 90px;
 }
@@ -319,5 +378,23 @@ export default {
 }
 .no-transition {
   transition: 0s;
+}
+.slot-scope-skeleton {
+  height: 12px;
+  border-radius: 4px;
+  background: #bdcdf1;
+}
+.slot-scope-font {
+  font-size: 10px;
+  color: gray;
+  transform: translate(4px, -8px);
+  display: inline-block;
+}
+.display__textarea {
+  max-height: 55px;
+  transform: translate(0, -15px);
+}
+.display__upload{
+  transform: translate(0,-15px);
 }
 </style>

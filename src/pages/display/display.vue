@@ -38,7 +38,8 @@ import contextmenuMixin from '../../mixins/contextmenu.mixin'
 
 import { cache, cloneDeep } from '../../utils'
 import { MoveCaseEnum } from '../../utils/Enum'
-import { Constraints } from '../../factory/create-constraints'
+import { FormType } from '../../utils/Enum'
+import { Constraints, rewriteCore } from '../../factory/create-constraints'
 
 export default {
   mixins: [
@@ -59,7 +60,6 @@ export default {
       constraints: [],
       moveCase: null,
       formatObserveContain: null,
-      test: new Constraints(),
     }
   },
   props: {
@@ -69,9 +69,10 @@ export default {
     },
   },
   created() {
-    console.log(this.test)
+    this.rewriteArrayMethods.fn = 'abc'
     this.rewriteArrayMethods(this.constraints)
     this.newRowHandler()
+    this.registerEvent()
   },
   mounted() {
     this.draggableSection = this.$refs.draggableSection
@@ -79,6 +80,23 @@ export default {
     document.body.addEventListener('mousedown', this.mousedownEvent)
     document.body.addEventListener('mouseup', this.mouseupEvent)
     this.draggableSection.addEventListener('contextmenu', this.contextmenuEvent)
+  },
+  watch: {
+    moveCase(val) {
+      if (val === MoveCaseEnum.DeformationEvent) {
+        //在deformation行进中的copy事件
+        this.mousemoveEvent.fn = (e) => {
+          this.resolveCopyInMoveEvent(e)
+          this.deformationEvent(e)
+        }
+      } else if (val === MoveCaseEnum.CopyEvent) {
+        this.mousemoveEvent.fn = this.copyEvent
+      } else if (val === MoveCaseEnum.SelectEvent) {
+        this.mousemoveEvent.fn = this.selectEvent
+      } else {
+        this.mousemoveEvent.fn = null
+      }
+    },
   },
   methods: {
     //将一个非observe的任意引用类型变量变成observe对象
@@ -90,76 +108,13 @@ export default {
       if (!Array.isArray(arr)) return
       const origin = arr.__proto__
 
-      function define(arr, key, methods) {
-        Object.defineProperty(arr, key, {
-          configurable: false,
-          enumerable: false,
-          writable: false,
-          value: methods,
-        })
-        return methods
-      }
-
       const constraintsProto = Object.create(origin),
         constraintsItemProto = Object.create(origin)
 
-      ;['push', 'unshift', 'splice'].forEach((method) => {
-        function formatParams(args, formatFn = (i) => i) {
-          const basic = method === 'splice' ? args.slice(0, 2) : []
-          args = method === 'splice' ? args.slice(2) : args
-          args = formatFn(args)
-          return {
-            formatArgs: args.length === 1 ? args[0] : args,
-            basic,
-          }
-        }
+      rewriteCore(constraintsProto, constraintsItemProto)
 
-        const genForceUpdate = define(constraintsItemProto, method, function genForceUpdate(
-          ...args
-        ) {
-          if (!args.length) return
-          const { formatArgs, basic } = formatParams(args)
-          ;(Array.isArray(formatArgs) ? formatArgs : [formatArgs]).forEach(
-            (col) => (col.forceUpdate = col.forceUpdate || 1)
-          )
-          const res = origin[method].call(this, ...basic, formatArgs)
-          return res
-        })
-
-        define(constraintsProto, method, function constrainsArrayMethod(
-          ...args
-        ) {
-          const _this = this
-          if (!args.length) return
-
-          const { basic, formatArgs } = formatParams(args, function(args) {
-            return args.map((i) => (!Array.isArray(i) ? [i] : i))
-          })
-
-          if (!formatArgs.length) return origin[method].apply(this, basic)
-
-          const buffer = new Uint32Array(1)
-          //single params
-          if (!Array.isArray(formatArgs[0])) {
-            formatArgs.key = crypto.getRandomValues(buffer)[0] + ''
-          } else {
-            return (method === 'splice'
-              ? formatArgs.reverse()
-              : formatArgs
-            ).every((i) => {
-              i.key = crypto.getRandomValues(buffer)[0] + ''
-              return defineAndCallMethod(i)
-            })
-          }
-
-          function defineAndCallMethod(arrItem) {
-            arrItem.__proto__ = constraintsItemProto
-            return genForceUpdate.call(_this, ...basic, arrItem)
-          }
-          return defineAndCallMethod(formatArgs)
-        })
-      })
       arr.__proto__ = constraintsProto
+      constraintsProto.constructor = Constraints
     },
     genColItem(columns = 24) {
       return { columns }
@@ -168,6 +123,8 @@ export default {
       return (e.path || []).some((item) => item === this.draggableSection)
     },
     mousedownEvent(e) {
+      //"暂时性死区"。当未完成位置信息计算的时候不允许点击
+      if (this.waitingMacroTask) return
       if (this.isEventInSection(e)) {
         e.preventDefault()
       }
@@ -184,8 +141,13 @@ export default {
 
       document.addEventListener('mousemove', this.mousemoveEvent)
 
-      let target = this.findParentByClass(e.target, 'context-box')
-      if (!target) return
+      let target
+      if (
+        !(target =
+          this.findElementContainer(e.pageX, e.pageY) &&
+          this.findElementContainer(e.pageX, e.pageY).dom.el)
+      )
+        return
 
       this.toggleDomClickStyle(target, true /*set style*/)
 
@@ -195,19 +157,12 @@ export default {
     },
     mousemoveEvent(e) {
       if (e.button !== 0) return
-      // e.preventDefault()
+      //处理事件类型
       this.resolveEvent(e)
 
       //event
-      if (this.moveCase === MoveCaseEnum.DeformationEvent) {
-        //在deformation行进中的copy事件
-        this.resolveCopyInMoveEvent(e)
-        this.deformationEvent(e)
-      } else if (this.moveCase === MoveCaseEnum.CopyEvent) {
-        this.copyEvent(e)
-      } else if (this.moveCase === MoveCaseEnum.SelectEvent) {
-        this.selectEvent(e)
-      }
+      //在 moveCase的watch中赋值
+      this.mousemoveEvent.fn && this.mousemoveEvent.fn(e)
     },
     mouseupEvent(e) {
       if (e.button !== 0) return
@@ -310,6 +265,7 @@ export default {
         endIndex,
         noTransition,
       } = this.formatNewRowArgs(args)
+
       let rows = this.formatObserve([])
       if (!Number.isSafeInteger(startIndex)) {
         rows.push([this.genColItem()])
@@ -419,12 +375,47 @@ export default {
       this.constraints.pop()
     },
     addElement(e) {
+      //拖动事件无法通过path判断是否在section，只能通过position
       if (!this.form.formType || !this.eventNotInSection(e)) return
-      const position = this.findElementContainer(e.pageX, e.pageY)
-
-      for (const [key, item] of Object.entries(this.form)) {
-        this.$set(position, key, item)
+      const target = this.findElementContainer(e.pageX, e.pageY)
+      if (!target) return
+      if (
+        (target.formType === FormType.Radio &&
+          this.form.formType === FormType.Radio) ||
+        (target.formType === FormType.Checkbox &&
+          this.form.formType === FormType.Checkbox)
+      ) {
+        this.optionKeyFormat(target.options, this.form.formInfo.options)
+        target.options.push(...this.form.formInfo.options)
+      } else {
+        for (const [key, item] of Object.entries(this.form.formInfo)) {
+          this.$set(target, key, item)
+        }
       }
+    },
+    optionKeyFormat(oldOptions, newOptions ) {
+      if(!newOptions || !newOptions.length) return 
+      let maxIdx = 0
+      const { length } = oldOptions
+      const reg = /^default_/
+
+      for (let i = 0; i < length; i++) {
+        const item = oldOptions[i].value
+        let n
+        if (
+          reg.test(item) &&
+          (n = Number(item.replace(reg, ''))) &&
+          Number.isSafeInteger(n)
+        ) {
+          maxIdx = Math.max(maxIdx, n)
+        }
+      }
+
+      newOptions.forEach((item) => {
+        if (reg.test(item.value)) {
+          item.value = `default_${++maxIdx}`
+        }
+      })
     },
     findElementContainer(x, y) {
       const stack = [this.constraints]
@@ -434,11 +425,12 @@ export default {
           stack.push(...item)
           continue
         }
-        const { left, right, top, bottom } = item.dom.range
+        const { left, right, top, bottom } = (item.dom && item.dom.range) || {}
         if (left <= x && right >= x && top <= y && bottom >= y) {
           return item
         }
       }
+      return null
     },
     eventNotInSection(e) {
       const { left, right, top, bottom } = this.findPagePosition(
@@ -462,6 +454,7 @@ export default {
         const content = rowParent.childNodes.item(rowIndex).childNodes[0]
         const siblingNumber = content.querySelectorAll('.context-box').length
         const rowItem = this.findSingleChildrenByClass(content, 'el-row')
+
         row.forEach((item, itemIndex) => {
           const el = this.findSingleChildrenByClass(
             rowItem.childNodes.item(itemIndex),
@@ -503,6 +496,20 @@ export default {
         bottom: top + height,
       }
     }),
+    registerEvent(){
+      this.$eventEmitter.on('addElement',this.addElement)
+    },
+    removeRegister(){
+      this.$eventEmitter.off('addElement')
+    },
+    removeEventListener(){
+      document.body.removeEventListener('mousedown', this.mousedownEvent)
+      document.body.removeEventListener('mouseup', this.mouseupEvent)
+      this.draggableSection.removeEventListener(
+        'contextmenu',
+        this.contextmenuEvent
+      )
+    }
   },
   updated() {
     //When change the cols width，refreshConstraintsDom should be called sync
@@ -510,12 +517,8 @@ export default {
     !this.waitingMacroTask && this.refreshConstraintsDom()
   },
   beforeDestroy() {
-    document.body.removeEventListener('mousedown', this.mousedownEvent)
-    document.body.removeEventListener('mouseup', this.mouseupEvent)
-    this.draggableSection.removeEventListener(
-      'contextmenu',
-      this.contextmenuEvent
-    )
+    this.removeEventListener()
+    this.removeRegister()
   },
 }
 </script>

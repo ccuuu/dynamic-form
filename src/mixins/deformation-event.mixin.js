@@ -22,7 +22,6 @@ export default {
           originX,
           position: this.findPagePosition(val),
         }
-        console.log(this.findPagePosition(val), val)
         if (this.findSiblingLength(val) === 1) {
           return (val.isSingle = true)
         }

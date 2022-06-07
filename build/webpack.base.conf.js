@@ -83,18 +83,15 @@ module.exports = {
       {
         test: /\.scss$/,
         use: [
-          {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
-          },
-          {
-            loader: 'sass-loader',
-            options: {
-              includePaths: ['absolute/path/a', 'absolute/path/b'],
+            'style-loader',
+            'css-loader',
+            {
+              loader: 'sass-loader',
+              options: {
+                // Prefer `dart-sass`
+                implementation: require.resolve('sass'),
+              },
             },
-          },
         ],
       },
       // {

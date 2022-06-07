@@ -23,6 +23,7 @@ export default {
                 'active-text': 'UI',
                 'inactive-text': 'JSON',
                 value: _this.controlModel,
+                disabled:true
               },
               on: {
                 change: (e) => {
@@ -39,11 +40,6 @@ export default {
               form: _this.form,
             },
             is: _this.controlModel ? 'ui-control' : 'JSON-control',
-            on: {
-              addElement: (e) => {
-                _this.$emit('addElement', e)
-              },
-            },
           }),
         ]),
         _c(
@@ -72,11 +68,9 @@ export default {
       required: true,
     },
   },
-  methods: {
-    onSubmit() {
-      this.$emit('addElement', this.form)
-    },
-  },
+  methods:{
+    onSubmit(){}
+  }
 }
 </script>
 <style scoped>

@@ -84,16 +84,20 @@ export default {
     }
     return createBasic()
   },
-  data() {
-    return {
-      tabIndex: 0,
-    }
-  },
   props: {
     options: {
       type: Array,
       default: () => [],
     },
+    tabIndex: {
+      type: String,
+      required: true,
+    },
   },
 }
 </script>
+<style>
+.el-tabs__nav-wrap {
+  width: calc(100% - 100px) !important;
+}
+</style>

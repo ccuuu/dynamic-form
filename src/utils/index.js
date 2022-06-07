@@ -35,6 +35,9 @@ export const cloneDeep = (value) => {
   }
   return result
 }
+
+
+//---------------------------------------------------
 //is：指定表单项的类型
 //label：表单的label
 //required：是否必填

@@ -289,7 +289,8 @@ export default {
       timer: null,
       currentElement: null,
       cloneElement: null,
-      menuEvent: null,
+      menuEvent: false,
+      dragEvent: false,
       shouldCheckEvent: true,
     }
   },
@@ -298,15 +299,14 @@ export default {
       type: Object,
       required: true,
     },
-    collectInfoElement: {
+    collectInfo: {
+      type: Object,
       required: true,
     },
   },
   watch: {
     currentElement(val) {
       if (val) {
-        //通知父组件刷新form数据
-        this.$emit('updateFormInfo')
         document.addEventListener('mousemove', this.dragEventCallBack)
       } else {
         this.cloneElement && document.body.removeChild(this.cloneElement)
@@ -317,10 +317,7 @@ export default {
   },
   methods: {
     resetForm() {
-      // this.form.label = 'default a label'
-      this.form.labelLeft = null
-      this.form.labelRight = null
-      this.form.formType = null
+      this.form.reset()
     },
     isDraggableElement(classValue) {
       return Object.values(regs).some((reg) => reg.test(classValue))
@@ -370,6 +367,8 @@ export default {
       e.stopPropagation()
       e.preventDefault()
       this.menuEvent = false
+      this.dragEvent = false
+
       //shouldCheckEvent to prevent timeout call back recursion
       if (this.shouldCheckEvent && !this.timer) {
         this.shouldCheckEvent = false
@@ -379,25 +378,29 @@ export default {
           this.mousedownEvent(e)
         }, 300)
       }
+
       if (e.button !== 0 || this.timer) return
-
-      this.resolveDragElement(e)
-
+      this.dragEvent = true
+      this.addAndResetCollectInfo()
       this.form.formType = this.obtainType(e)
+      this.resolveDragElement(e)
     },
     mouseupEvent(e) {
       this.shouldCheckEvent = true
       if ((this.menuEvent = !!this.timer)) {
-        this.$emit('update:collectInfoElement', this.obtainType(e))
+        this.form.formType = this.obtainType(e)
+        this.$emit('resetCollectFormType', this.form.formType)
       }
-      if (e.button !== 0) return
-      if (true) {
-        Promise.resolve().then(() => {
-          this.resetForm()
-        })
-        this.$emit('addElement', e)
-      }
-      if (this.currentElement) this.currentElement = null
+      if (e.button !== 0 || !this.currentElement) return
+      Promise.resolve().then(() => {
+        this.resetForm()
+      })
+      this.$eventEmitter.emit('addElement',e)
+      this.currentElement = null
+    },
+    addAndResetCollectInfo() {
+      this.form.updateUniqueInfo(this.collectInfo)
+      this.$emit('resetCollectInfo')
     },
     preventCursorStyle(e) {
       if (!e.target || e.target.style.cursor === 'pointer') return

@@ -41,5 +41,10 @@ const FormType = {
   Date: 'date',
   Select: 'select',
   SlotScope: 'slotScope',
+  Slider: 'slider',
+  TimePicker: 'time-picker',
+  DateTimePiker: 'date-time-picker',
+  Upload: 'upload',
+  Cascader: 'cascader',
 }
 export { MoveCaseEnum, MenuEnum, MenuAction, MenuText, FormType }
