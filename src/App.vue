@@ -15,7 +15,6 @@ export default {
     const createBasic = () => {
       return _c('div', { attrs: { id: 'app' } }, [
         createCanvas(),
-
         _c('el-row', [
           createCol(
             12,
@@ -34,7 +33,6 @@ export default {
     const createCol = (md, child) => {
       return _c('el-col', { props: { md } }, [child])
     }
-
     return createBasic()
   },
   components: { display, control },
@@ -53,13 +51,14 @@ export default {
         waves: 4,
         width: 100,
       })
-      setImmediate(()=>{
+      // 减少初始化性能消耗
+      setImmediate(() => {
         waves.animate()
-      waves.stop()
+        waves.stop()
 
-      setTimeout(() => {
-        waves.animate()
-      }, 300)
+        setTimeout(() => {
+          waves.animate()
+        }, 300)
       })
     },
   },

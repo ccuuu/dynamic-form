@@ -5,9 +5,7 @@ import { FormType } from '../../utils/Enum'
 export default {
   render(_c) {
     const _this = this
-    const {
-      constraints
-    } = this
+    const { constraints } = this
     const createBasic = () => {
       return _c('div', {}, [
         _c(
@@ -195,7 +193,13 @@ export default {
           ],
           style: { position: 'relative', width: '100%', height: '100%' },
         },
-        item.formType ? [FormType[formatText(item.formType)] === FormType.SlotScope ? generate.createSlotScope():  createFormItem(item, index)] : null
+        item.formType
+          ? [
+              FormType[formatText(item.formType)] === FormType.SlotScope
+                ? generate.createSlotScope()
+                : createFormItem(item, index),
+            ]
+          : null
       )
     }
     const createFormItem = (item, index) => {
@@ -209,56 +213,60 @@ export default {
       )
     }
     const createItemBasic = (item, index) => {
-      const fn = generate[`create${formatText(item.formType)}`]
-      if(typeof fn !== 'function') return 
+      const fn = createGenerate(item.formType)
+      if (typeof fn !== 'function') return
       return fn(item)
     }
 
-    const formatText = (text)=>{
-      return text.replace(/^\w|-\w/g,(w)=>w.toUpperCase().replace('-',''))
+    const formatText = (text) => {
+      return text.replace(/^\w|-\w/g, (w) => w.toUpperCase().replace('-', ''))
     }
 
     const generate = {
-     createInput : (item) => {
-      return _c('el-input')
+      createInput: (item) => {
+        return _c('el-input')
       },
-      createTextarea : (item) => {
+      createTextarea: (item) => {
         return _c('el-input', {
-          class:'display__textarea',
+          class: 'display__textarea',
           attrs: {
             type: 'textarea',
           },
         })
       },
-      createSelect : (item) => {
-        return _c('el-input', { props: { 'suffix-icon': 'el-icon-arrow-down' } })
+      createSelect: (item) => {
+        return _c('el-input', {
+          props: { 'suffix-icon': 'el-icon-arrow-down' },
+        })
       },
-      createCheckbox : (item) => {
+      createCheckbox: (item) => {
         return (item.options || []).map((option) =>
           _c('el-checkbox', { props: { value: '1' } }, option.text)
         )
       },
-      createRadio :(item) => {
+      createRadio: (item) => {
         return (item.options || []).map((option) =>
           _c('el-radio', { props: { value: '1' } }, option.text)
         )
       },
-      createSwitch : (item) => {
+      createSwitch: (item) => {
         return _c('el-switch')
       },
-      createDate : (item) => {
+      createDate: (item) => {
         return _c('el-input', { props: { 'prefix-icon': 'el-icon-date' } })
       },
-      createCascader : (item) => {
-        return _c('el-input', { props: { 'suffix-icon': 'el-icon-arrow-down' } })
+      createCascader: (item) => {
+        return _c('el-input', {
+          props: { 'suffix-icon': 'el-icon-arrow-down' },
+        })
       },
-      createTimePicker : (item) => {
+      createTimePicker: (item) => {
         return _c('el-input', { props: { 'prefix-icon': 'el-icon-time' } })
       },
-      createDateTimePiker : (item) => {
+      createDateTimePiker: (item) => {
         return _c('el-input', { props: { 'prefix-icon': 'el-icon-time' } })
       },
-      createSlider : (item) => {
+      createSlider: (item) => {
         return _c('div', { class: 'el-slider' }, [
           _c('div', { class: 'el-slider__runway' }, [
             _c('div', {
@@ -273,7 +281,7 @@ export default {
           ]),
         ])
       },
-      createSlotScope:()=>{
+      createSlotScope: () => {
         return _c(
           'div',
           {
@@ -309,7 +317,7 @@ export default {
           ]
         )
       },
-      createUpload:()=>{
+      createUpload: () => {
         return _c(
           'div',
           {
@@ -330,8 +338,17 @@ export default {
             }),
           ]
         )
+      },
+    }
+
+    function createGenerate(text) {
+      const formatText = (text) => {
+        return `create${text.replace(/^\w|-\w/g, (w) =>
+          w.toUpperCase().replace('-', '')
+        )}`
       }
-      
+      const current = generate[formatText(text)]
+      return current
     }
 
     return createBasic()
@@ -356,7 +373,7 @@ export default {
   },
 }
 </script>
-<style   lang="scss">
+<style lang="scss">
 .height-90 {
   height: 90px;
 }
@@ -394,7 +411,7 @@ export default {
   max-height: 55px;
   transform: translate(0, -15px);
 }
-.display__upload{
-  transform: translate(0,-15px);
+.display__upload {
+  transform: translate(0, -15px);
 }
 </style>
