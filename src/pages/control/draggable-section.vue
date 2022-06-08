@@ -340,6 +340,8 @@ export default {
       const { left, top } = this.findPagePosition(ele, false /* no use cache */)
       this.cloneElement = ele.cloneNode(true)
       const { cloneElement } = this
+      //use will-change
+      cloneElement.style.willChange = 'top, left'
       cloneElement.style.position = 'absolute'
       cloneElement.style.left = Math.floor(left) + 'px'
       cloneElement.style.top = Math.floor(top) + 'px'
@@ -347,10 +349,8 @@ export default {
       cloneElement.style.zIndex = 1002
       cloneElement.style.animation = 'clone 0.3s'
 
-      const {
-        left: deviationL,
-        top: deviationT,
-      } = this.findParentPositionByClass(e.target, 'el-col')
+      const { left: deviationL, top: deviationT } =
+        this.findParentPositionByClass(e.target, 'el-col')
       cloneElement.setAttribute('data-deviation-x', e.offsetX + deviationL)
       cloneElement.setAttribute('data-deviation-y', e.offsetY + deviationT)
       document.body.appendChild(cloneElement)
@@ -395,7 +395,7 @@ export default {
       Promise.resolve().then(() => {
         this.resetForm()
       })
-      this.$eventEmitter.emit('addElement',e)
+      this.$eventEmitter.emit('addElement', e)
       this.currentElement = null
     },
     addAndResetCollectInfo() {
@@ -436,7 +436,7 @@ export default {
       return ele
     },
 
-    findPagePosition: cache(function(el) {
+    findPagePosition: cache(function (el) {
       let left = 0,
         top = 0,
         width = el.offsetWidth,
@@ -453,7 +453,7 @@ export default {
         bottom: top + height,
       }
     }),
-    findParentPositionByClass: cache(function(el, className) {
+    findParentPositionByClass: cache(function (el, className) {
       let left = 0,
         top = 0,
         width = el.offsetWidth,

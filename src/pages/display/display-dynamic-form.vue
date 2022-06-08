@@ -336,14 +336,13 @@ export default {
         )
       },
     }
-
+    const formatText = (text, additional = (text) => text) => {
+      return additional(
+        text.replace(/^\w|-\w/g, (w) => w.toUpperCase().replace('-', ''))
+      )
+    }
     function createGenerate(text) {
-      const formatText = (text) => {
-        return `create${text.replace(/^\w|-\w/g, (w) =>
-          w.toUpperCase().replace('-', '')
-        )}`
-      }
-      const current = generate[formatText(text)]
+      const current = generate[formatText(text, (text) => `create${text}`)]
       return current
     }
 
