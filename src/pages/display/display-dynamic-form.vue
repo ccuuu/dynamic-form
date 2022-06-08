@@ -218,10 +218,6 @@ export default {
       return fn(item)
     }
 
-    const formatText = (text) => {
-      return text.replace(/^\w|-\w/g, (w) => w.toUpperCase().replace('-', ''))
-    }
-
     const generate = {
       createInput: (item) => {
         return _c('el-input')
